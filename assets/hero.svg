@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f74c00"/>
+      <stop offset="100%" stop-color="#ffb454"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+
+  <text x="960" y="380" font-family="Helvetica, Arial, sans-serif" font-size="84"
+        font-weight="800" fill="#f0f6fc" text-anchor="middle">
+    Rust for Machine Learning
+  </text>
+  <text x="960" y="470" font-family="Helvetica, Arial, sans-serif" font-size="40"
+        font-weight="500" fill="url(#accent)" text-anchor="middle">
+    Pure, Provable &amp; Profitable
+  </text>
+
+  <text x="960" y="600" font-family="Helvetica, Arial, sans-serif" font-size="32"
+        fill="#8b949e" text-anchor="middle">
+    56-Course Coursera Professional Certificate
+  </text>
+  <text x="960" y="650" font-family="Helvetica, Arial, sans-serif" font-size="26"
+        fill="#8b949e" text-anchor="middle">
+    8 Specializations  ·  Built on aprender  ·  Compiler-in-the-Loop
+  </text>
+
+  <g transform="translate(220,780)" font-family="Helvetica, Arial, sans-serif"
+     font-size="22" fill="#f0f6fc">
+    <rect x="0"    y="0" width="180" height="80" rx="10" fill="#21262d" stroke="url(#accent)" stroke-width="3"/>
+    <text x="90"   y="48" text-anchor="middle">Math</text>
+
+    <rect x="200"  y="0" width="180" height="80" rx="10" fill="#21262d" stroke="url(#accent)" stroke-width="3"/>
+    <text x="290"  y="48" text-anchor="middle">Sister Langs</text>
+
+    <rect x="400"  y="0" width="180" height="80" rx="10" fill="#21262d" stroke="url(#accent)" stroke-width="3"/>
+    <text x="490"  y="48" text-anchor="middle">aprender</text>
+
+    <rect x="600"  y="0" width="180" height="80" rx="10" fill="#21262d" stroke="url(#accent)" stroke-width="3"/>
+    <text x="690"  y="48" text-anchor="middle">Classical ML</text>
+
+    <rect x="800"  y="0" width="180" height="80" rx="10" fill="#21262d" stroke="url(#accent)" stroke-width="3"/>
+    <text x="890"  y="48" text-anchor="middle">Lifecycle</text>
+
+    <rect x="1000" y="0" width="180" height="80" rx="10" fill="#21262d" stroke="url(#accent)" stroke-width="3"/>
+    <text x="1090" y="48" text-anchor="middle">QA</text>
+
+    <rect x="1200" y="0" width="180" height="80" rx="10" fill="#21262d" stroke="url(#accent)" stroke-width="3"/>
+    <text x="1290" y="48" text-anchor="middle">Correctness</text>
+
+    <rect x="1400" y="0" width="180" height="80" rx="10" fill="#21262d" stroke="url(#accent)" stroke-width="3"/>
+    <text x="1490" y="48" text-anchor="middle">Money</text>
+  </g>
+
+  <text x="960" y="1000" font-family="Helvetica, Arial, sans-serif" font-size="22"
+        fill="#6e7681" text-anchor="middle">
+    Pragmatic AI Labs
+  </text>
+</svg>

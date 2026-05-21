@@ -1,0 +1,29 @@
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Node (for markdown lint, if used)
+node_modules/
+package-lock.json
+
+# Python (if any helper scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build / output
+target/
+dist/
+build/
+out/
+*.log
+
+# Course rendering outputs (managed by course-studio / rmedia)
+output/
+renders/
+*.srt.lock
+*.scene.lock
