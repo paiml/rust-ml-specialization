@@ -43,18 +43,19 @@ test-tracks: ## Verify 8 track directories exist
 	echo "OK: 8 tracks present"
 
 .PHONY: test-courses
-test-courses: ## Verify 56 course directories exist (7 per track)
+test-courses: ## Verify 57 course directories exist (7 per track; track 6 has 8)
 	@n=$$(ls -d courses/track-*/course-* 2>/dev/null | wc -l); \
-	if [ "$$n" != "56" ]; then \
-		echo "FAIL: expected 56 courses, found $$n"; exit 1; \
+	if [ "$$n" != "57" ]; then \
+		echo "FAIL: expected 57 courses, found $$n"; exit 1; \
 	fi; \
 	for t in $(TRACK_DIRS); do \
 		c=$$(ls -d $$t/course-* 2>/dev/null | wc -l); \
-		if [ "$$c" != "7" ]; then \
-			echo "FAIL: $$t has $$c courses (expected 7)"; exit 1; \
+		exp=7; case "$$t" in */track-6) exp=8;; esac; \
+		if [ "$$c" != "$$exp" ]; then \
+			echo "FAIL: $$t has $$c courses (expected $$exp)"; exit 1; \
 		fi; \
 	done; \
-	echo "OK: 56 courses (7 per track) present"
+	echo "OK: 57 courses (track 6 has 8) present"
 
 .PHONY: test-capstone
 test-capstone: ## Verify every course README mentions a Capstone section
@@ -67,7 +68,7 @@ test-capstone: ## Verify every course README mentions a Capstone section
 		fi; \
 	done; \
 	if [ "$$missing" != "0" ]; then exit 1; fi; \
-	echo "OK: all 56 courses have a Capstone section"
+	echo "OK: all 57 courses have a Capstone section"
 
 .PHONY: check
 check: lint test ## Run lint + test

@@ -1,0 +1,11 @@
+[package]
+name = "netprobe"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal network performance probe (course-ideas build track). Contract-governed by ../contracts/netprobe-v1.yaml."
+publish = false
+
+[lints.clippy]
+all = "deny"
+
+[dependencies]

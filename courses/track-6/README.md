@@ -16,3 +16,4 @@ See the top-level [README.md](../../README.md) for how this track fits into the
 | 40 | **TUI & ComputeBrick Monitoring** | apr tui, apr monitor, apr cbtop |
 | 41 | **HuggingFace Hub Integration** | apr pull, apr list, apr publish |
 | 42 | **Text & Audio Processing Pipelines** | aprender-core text/audio |
+| 57 | **Network Performance for ML Systems** | apr serve, apr profile, netprobe |

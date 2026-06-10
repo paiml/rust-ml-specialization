@@ -1,0 +1,24 @@
+version: 1.0.0
+target_crate: netprobe
+# Maps each contract equation to the Rust function that must satisfy it.
+# status: implemented — the netprobe crate (../netprobe/) implements each function
+# and passes `pv validate` + the contract's falsification tests (cargo test).
+bindings:
+- contract: netprobe-v1.yaml
+  equation: bytes_per_sec_to_gbit
+  module_path: netprobe
+  function: bytes_per_sec_to_gbit
+  signature: "fn bytes_per_sec_to_gbit(bps: f64) -> f64"
+  status: implemented
+- contract: netprobe-v1.yaml
+  equation: measure_throughput
+  module_path: netprobe
+  function: measure_throughput
+  signature: "fn measure_throughput(stream: &mut TcpStream, bytes: u64) -> Result<Throughput, ProbeError>"
+  status: implemented
+- contract: netprobe-v1.yaml
+  equation: measure_latency
+  module_path: netprobe
+  function: measure_latency
+  signature: "fn measure_latency(addr: SocketAddr, count: u32) -> Result<LatencyStats, ProbeError>"
+  status: implemented

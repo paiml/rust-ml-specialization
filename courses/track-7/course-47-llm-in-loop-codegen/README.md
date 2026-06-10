@@ -8,7 +8,7 @@ Scaffolded stub. Module outlines, lesson scripts, and capstone spec are TBD.
 
 ## Structure
 
-```
+```text
 Course → Module → Lesson (3–5 videos ≤ 6 min each) → Key Terms + Reflection
 ```
 

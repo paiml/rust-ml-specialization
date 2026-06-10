@@ -3,9 +3,9 @@
 [![CI](https://github.com/paiml/rust-ml-specialization/actions/workflows/ci.yml/badge.svg)](https://github.com/paiml/rust-ml-specialization/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-![Rust for Machine Learning: 56-Course Professional Certificate](./assets/hero.svg)
+![Rust for Machine Learning: 57-Course Professional Certificate](./assets/hero.svg)
 
-**Pure, Provable & Profitable Machine Learning in Rust** — a 56-course Coursera Professional
+**Pure, Provable & Profitable Machine Learning in Rust** — a 57-course Coursera Professional
 Certificate that takes you from mathematical foundations and polyglot literacy through pure-Rust
 classical ML, training, inference, and quantization, into provable correctness via Lean and
 contract-based verification, and finally into monetization as an ML engineer.
@@ -17,9 +17,10 @@ by aprender's own inference server, to ML kernels proven correct in Lean.
 
 ## Tracks
 
-The certificate stacks as **8 Coursera Specializations** of 7 courses each:
+The certificate stacks as **8 Coursera Specializations** (7 courses each, plus one
+cross-cutting systems course in Track 6 — **57 total**):
 
-```
+```text
 Math ──► Sister Langs ──► aprender Foundations ──► Classical ML ──►
    (1)        (2)                  (3)                  (4)
 
@@ -113,6 +114,7 @@ Each language is a lens on aprender. The throughline: every translation is verif
 | 40 | **TUI & ComputeBrick Monitoring** | `apr tui`, `apr monitor`, `apr cbtop` | TBD |
 | 41 | **HuggingFace Hub Integration** | `apr pull`, `apr list`, `apr publish` | TBD |
 | 42 | **Text & Audio Processing Pipelines** | `aprender-core` text/audio | TBD |
+| 57 | **Network Performance for ML Systems** | `apr serve`, `apr profile`, `netprobe` | Diagnose & tune an ML data path |
 
 ## Track 7 — Correctness: Provable Contracts + Lean
 
@@ -145,7 +147,7 @@ it. Every business course uses aprender as the worked example.
 
 ## Learning Arc
 
-```
+```text
         ┌─────────────────────────────────────────────────────────────┐
         │                  COMPILER-IN-THE-LOOP                       │
         │     rustc + contracts + Lean verify every translation       │
@@ -175,7 +177,9 @@ falsification in 6, Lean proofs in 7, and verified SaaS deliverables in 8.
 
 Each course is ~60 minutes of 3–5 minute videos organized as:
 
-**Course → Module → Lesson (3–5 videos) → Key Terms + Reflection**
+```text
+Course → Module → Lesson (3–5 videos) → Key Terms + Reflection
+```
 
 Every module ends with a **Critical Thinking Assessment** (quiz + role-play practice assignment).
 Every course ends with a **Capstone Project** — a LinkedIn-shareable portfolio artifact built on
@@ -184,7 +188,7 @@ zero-install capstones runnable in the browser at <https://play.rust-lang.org/>.
 
 ## Installation
 
-```
+```text
 git clone https://github.com/paiml/rust-ml-specialization.git
 cd rust-ml-specialization
 make check
@@ -192,7 +196,7 @@ make check
 
 ## Usage
 
-```
+```text
 make help          # Show available commands
 make lint          # Lint markdown files
 make test          # Validate course structure (56 courses, 8 tracks, capstone sections)

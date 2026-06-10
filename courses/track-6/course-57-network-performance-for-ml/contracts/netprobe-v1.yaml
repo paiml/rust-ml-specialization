@@ -1,0 +1,89 @@
+metadata:
+  version: 1.0.0
+  description: "Network Performance Testing — netprobe build-track kernel: TCP throughput, RTT latency, and bits/bytes conversion. Contract-first: written before the implementation (status: planned in binding.yaml)."
+  references:
+  - "iperf3 reference behavior: https://software.es.net/iperf/"
+  - "Rust API Guidelines: https://rust-lang.github.io/api-guidelines/"
+equations:
+  bytes_per_sec_to_gbit:
+    formula: "bytes_per_sec_to_gbit(bps: f64) -> f64"
+    domain: "Convert a byte/sec throughput to gigabits/sec (the Module 0 bits-vs-bytes lesson)"
+    invariants:
+    - "result == bps * 8.0 / 1_000_000_000.0"
+    - "bps >= 0.0 implies result >= 0.0"
+    - "Total over every finite non-negative bps — no panic, no NaN"
+    preconditions:
+    - "bps is finite and >= 0.0"
+    postconditions:
+    - "result is finite and >= 0.0"
+  measure_throughput:
+    formula: "measure_throughput(stream: &mut TcpStream, bytes: u64) -> Result<Throughput, ProbeError>"
+    domain: "Send exactly `bytes` over an established TCP stream and time the transfer"
+    invariants:
+    - "Ok(t) implies t.elapsed > Duration::ZERO"
+    - "Ok(t) implies t.bytes == bytes — a short write is Err, never a truncated success"
+    - "Ok(t) implies t.bits_per_sec == (bytes * 8) as f64 / t.elapsed.as_secs_f64()"
+    - "Err(e) preserves the underlying io::ErrorKind on reset or short write — never a panic"
+    preconditions:
+    - "stream is connected"
+    - "bytes > 0"
+    postconditions:
+    - "Ok(Throughput) reports bytes, elapsed, and a non-negative bits_per_sec"
+    - "Err(ProbeError) identifies the failing syscall"
+  measure_latency:
+    formula: "measure_latency(addr: SocketAddr, count: u32) -> Result<LatencyStats, ProbeError>"
+    domain: "Send `count` round-trip probes to addr and summarize RTT (ping-style)"
+    invariants:
+    - "Ok(s) implies s.received <= count"
+    - "Ok(s) implies s.min <= s.avg && s.avg <= s.max"
+    - "Ok(s) implies 0.0 <= s.loss_pct && s.loss_pct <= 100.0"
+    - "Ok(s) implies s.loss_pct == ((count - s.received) as f64) / (count as f64) * 100.0"
+    - "A lost probe increments loss and continues — a timeout never panics or aborts the run"
+    preconditions:
+    - "count > 0"
+    postconditions:
+    - "Ok(LatencyStats) has min <= avg <= max computed over `received` samples"
+    - "received == 0 implies Err(ProbeError) — no division by zero on total loss"
+proof_obligations:
+- type: invariant
+  property: throughput equals bytes*8/elapsed with no arithmetic drift
+- type: invariant
+  property: latency ordering min <= avg <= max and loss_pct within [0, 100]
+- type: invariant
+  property: unit-conversion totality (finite, non-negative, no panic for finite non-negative input)
+falsification_tests:
+- id: FALSIFY-NP-001
+  rule: measure_throughput contract
+  prediction: Transferring N bytes reports t.bytes == N
+  if_fails: A short write is counted as success and throughput is inflated
+- id: FALSIFY-NP-002
+  rule: measure_latency contract
+  prediction: With every probe lost, returns Err and never divides by zero
+  if_fails: Panic or NaN on 100% packet loss
+- id: FALSIFY-NP-003
+  rule: bytes_per_sec_to_gbit contract
+  prediction: 1_250_000_000 bytes/s converts to 10.0 Gbit/s
+  if_fails: The bits/bytes conversion is wrong (the core Module 0 lesson)
+kani_harnesses:
+- id: KANI-NP-001
+  obligation: unit-conversion totality
+  bound: 8
+  strategy: bounded_int
+  solver: cadical
+- id: KANI-NP-002
+  obligation: latency ordering and loss bounds
+  bound: 8
+  strategy: bounded_int
+  solver: cadical
+- id: KANI-NP-003
+  obligation: throughput arithmetic with no drift
+  bound: 8
+  strategy: bounded_int
+  solver: cadical
+qa_gate:
+  id: F-NP-001
+  name: netprobe-v1 Contract
+  description: Quality gate for the Network Performance Testing build-track netprobe kernel
+  checks:
+  - validation
+  - falsification
