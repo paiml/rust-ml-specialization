@@ -27,3 +27,20 @@ output/
 renders/
 *.srt.lock
 *.scene.lock
+
+# ── Check-in policy (2026-06-10): keep SOURCE, not renders ──────────────────
+# Commit the diffable source of what we create — *.svg, *.md, *.lua. Do NOT
+# commit rendered binary media; it regenerates from the source via
+# `rmedia svg2png` / the `rmedia course` pipeline.
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.mp4
+*.mov
+*.webm
+*.mkv
+*.mp3
+*.wav
+*.pdf
