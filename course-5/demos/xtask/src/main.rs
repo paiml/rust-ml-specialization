@@ -12,8 +12,12 @@ use std::process::ExitCode;
 /// The PAIML ceiling for one video (MEGA-001 §4.1): 6 minutes.
 const MAX_DURATION_S: u32 = 360;
 
+/// Runtime `CARGO_MANIFEST_DIR` (set by `cargo run`) wins over the compile-time
+/// one, so a binary reused from a shared target dir verifies THIS checkout.
 fn demos_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
+    let manifest = std::env::var("CARGO_MANIFEST_DIR")
+        .unwrap_or_else(|_| env!("CARGO_MANIFEST_DIR").to_string());
+    Path::new(&manifest)
         .parent()
         .expect("xtask lives in the demos workspace")
         .to_path_buf()

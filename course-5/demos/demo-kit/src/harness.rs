@@ -23,8 +23,13 @@ pub struct Harness {
 
 impl Harness {
     /// Load `<dir>/demo.toml` and preflight against the real tools.
+    /// `dir` is the compile-time `env!("CARGO_MANIFEST_DIR")`. When `cargo run`
+    /// supplies the runtime `CARGO_MANIFEST_DIR`, that wins: a binary reused
+    /// from a shared target dir must read THIS checkout's demo.toml, never the
+    /// one it happened to be compiled in.
     pub fn load(dir: &str) -> Self {
-        Self::load_with(Path::new(dir), &SystemProbe)
+        let dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| dir.to_string());
+        Self::load_with(Path::new(&dir), &SystemProbe)
     }
 
     pub fn load_with(dir: &Path, probe: &dyn Probe) -> Self {
