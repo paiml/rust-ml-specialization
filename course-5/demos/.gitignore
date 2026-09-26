@@ -1,0 +1,3 @@
+target/
+# Receipts carry host names: they live in the private catalogue, never here (H-11).
+receipts/

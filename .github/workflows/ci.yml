@@ -25,3 +25,26 @@ jobs:
 
       - name: Validate course structure
         run: make test
+
+  course-5-demos:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: course-5/demos
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: rustup toolchain install stable --profile minimal -c clippy,rustfmt && rustup default stable
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test (includes the demo-pin-v1, demo-refusal-not-green-v1, demo-contract-docstring-v1 falsifiers)
+        run: cargo test --workspace
+
+      - name: Verify every demo
+        run: cargo run -q -p xtask -- verify
