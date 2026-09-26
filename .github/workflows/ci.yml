@@ -48,3 +48,15 @@ jobs:
 
       - name: Verify every demo
         run: cargo run -q -p xtask -- verify
+
+  # The org "Green Main" ruleset requires one status named `gate`. It passes
+  # only when every job above passed; a skipped or cancelled job is a failure.
+  gate:
+    if: always()
+    needs: [check, course-5-demos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All required jobs passed
+        run: |
+          test "${{ needs.check.result }}" = success
+          test "${{ needs.course-5-demos.result }}" = success
