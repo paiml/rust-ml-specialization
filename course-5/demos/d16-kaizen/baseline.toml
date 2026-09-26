@@ -1,0 +1,19 @@
+# Accepted kaizen baselines (ratchet-monotone-v1). Rewritten only by
+# `cargo run -p d16-kaizen -- --update`, and only when every metric held
+# or improved. See src/main.rs for the schema.
+
+[d11-refusals.green_run_count]
+direction = "higher"
+baseline = 8.0
+
+[d13-reducer.green_run_count]
+direction = "higher"
+baseline = 3.0
+
+[d13-reducer.shuffles_identical]
+direction = "higher"
+baseline = 1000.0
+
+[d16-kaizen.green_run_count]
+direction = "higher"
+baseline = 1.0
