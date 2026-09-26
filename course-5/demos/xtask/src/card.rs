@@ -1,4 +1,4 @@
-//! Recording card: what Noah needs in front of him to record a demo, derived
+//! Recording card: what the presenter needs in front of them to record a demo, derived
 //! from `demo.toml` alone so the card cannot drift from the test.
 
 use demo_kit::DemoManifest;
