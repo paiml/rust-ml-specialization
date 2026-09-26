@@ -1,0 +1,25 @@
+id = "d15-agy-teamwork"
+title = "agy teamwork: one minter, one reducer, workers report to an inbox"
+lesson = "rfml5/4.1"
+apr = "none"
+agy = "=1.2.11"
+host_class = "agy-host"
+needs = ["agy"]
+fixtures = { dir = "fixtures", sha256 = "0fa32d705245d081f6c76514a0b91ffeb302630dc152504e6920e28b9d53695e" }
+
+[[step]]
+cmd = "cargo run -q -p d15-agy-teamwork"
+
+[assert]
+tickets_minted = 3
+inbox_files = 3
+max_lines = "<= 3"
+orphans = 0
+workers_exit_ok = 3
+exit = 0
+
+[record]
+target_duration_s = 240
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["tickets_minted", "inbox_files", "max_lines", "orphans", "wall_ms"]

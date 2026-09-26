@@ -1,0 +1,1 @@
+The orchestrator is the only reducer: it reads the inbox once, sorts by ticket, and never trusts a worker's own claim of success.

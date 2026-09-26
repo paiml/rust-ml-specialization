@@ -1,0 +1,1 @@
+Each worker owns exactly one disjoint ticket and writes exactly one inbox file; touching another ticket's file is an orphan and stops the line.

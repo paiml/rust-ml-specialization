@@ -45,6 +45,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "d15-agy-teamwork"
+version = "0.1.0"
+dependencies = [
+ "demo-kit",
+ "libc",
+ "serde_json",
+]
+
+[[package]]
+name = "d16-kaizen"
+version = "0.1.0"
+dependencies = [
+ "demo-kit",
+ "serde",
+ "serde_json",
+ "toml",
+]
+
+[[package]]
 name = "demo-kit"
 version = "0.1.0"
 dependencies = [
