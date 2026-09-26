@@ -1,0 +1,24 @@
+id = "d09-parity-receipt"
+title = "A parity receipt: GPU against CPU, position by position"
+lesson = "rfml5/2.2"
+apr = "=0.69.3"
+agy = "none"
+model = { name = "Qwen3.5-4B-Q4_K_M", sha256 = "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4", path = "../models/Qwen3.5-4B-Q4_K_M.gguf" }
+host_class = "gx10-cuda"
+needs = ["apr parity --json"]
+
+[[step]]
+cmd = "cargo run -q -p d09-parity-receipt"
+
+[assert]
+parity = true
+failed = 0
+min_cosine = ">= 0.98"
+positions = "> 0"
+exit = 0
+
+[record]
+target_duration_s = 240
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["positions", "min_cosine", "threshold", "failed"]

@@ -1,0 +1,11 @@
+[package]
+name = "d09-parity-receipt"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "D09: apr parity GPU vs CPU as a receipt (lesson 2.2)"
+
+[dependencies]
+demo-kit = { path = "../demo-kit" }
+serde_json.workspace = true

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["demo-kit", "xtask", "d13-reducer"]
+members = ["demo-kit", "xtask", "d13-reducer", "d01-serve-hello", "d02-cold-vs-resident", "d09-parity-receipt"]
 
 [workspace.package]
 edition = "2021"

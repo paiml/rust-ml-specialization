@@ -59,6 +59,34 @@ impl Harness {
         &self.preflight
     }
 
+    /// Record a refusal discovered at run time (e.g. a verb exiting with its
+    /// REFUSED code). The demo then finishes NotRun, whatever it measured.
+    pub fn refuse(&mut self, reason: crate::NotRunReason) {
+        self.preflight.push(reason);
+    }
+
+    /// Run one step: `program args…`, recording it in the receipt. Returns
+    /// (exit code, stdout, wall ms).
+    pub fn step(&mut self, program: &str, args: &[&str]) -> (i32, Vec<u8>, u128) {
+        let cmd = std::iter::once(program)
+            .chain(args.iter().copied())
+            .collect::<Vec<_>>()
+            .join(" ");
+        println!("$ {cmd}");
+        let t = std::time::Instant::now();
+        let out = std::process::Command::new(program).args(args).output();
+        let ms = t.elapsed().as_millis();
+        let (code, stdout) = match out {
+            Ok(o) => (o.status.code().unwrap_or(-1), o.stdout),
+            Err(e) => {
+                println!("  spawn failed: {e}");
+                (-1, Vec::new())
+            }
+        };
+        self.receipt.step(&cmd, code, &stdout);
+        (code, stdout, ms)
+    }
+
     /// Decide the verdict from `measured`, print it, and write the receipt
     /// when `RFML5_RECEIPTS` is set. Returns the verdict.
     pub fn finish(&mut self, measured: BTreeMap<String, Value>) -> Verdict {
