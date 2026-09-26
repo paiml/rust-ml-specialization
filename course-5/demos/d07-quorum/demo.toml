@@ -5,7 +5,7 @@ apr = "=0.69.3"
 agy = "=1.2.11"
 host_class = "any"
 needs = ["agy"]
-fixtures = { dir = "../fixtures/diffs", sha256 = "bc1eae7eab61388cf33e6b6175729cac3753374e33e851f07169f561eb8f80ed" }
+fixtures = { dir = "../fixtures/diffs", sha256 = "cbf5e4ec47ad9ffc0fcc2c4213afdfee25943f4e9dd7918976178b4c521aa458" }
 
 [[step]]
 cmd = "cargo run -q -p d07-quorum"

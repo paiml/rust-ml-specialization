@@ -5,7 +5,7 @@ apr = "=0.69.3"
 agy = "=1.2.11"
 host_class = "any"
 needs = ["agy", "claude"]
-fixtures = { dir = "../fixtures/diffs", sha256 = "bc1eae7eab61388cf33e6b6175729cac3753374e33e851f07169f561eb8f80ed" }
+fixtures = { dir = "../fixtures/diffs", sha256 = "cbf5e4ec47ad9ffc0fcc2c4213afdfee25943f4e9dd7918976178b4c521aa458" }
 
 [[step]]
 cmd = "cargo run -q -p d08-planted-defect"
@@ -19,18 +19,20 @@ apr_lane = "NotRun{Refused(--json-schema)}"
 # clean-02, planted-01, planted-02), recorded in the W-3 inbox report, never
 # tuned to a single run: the minimum observed value across all three, so a
 # fourth run below what was already measured is a real regression.
-#   run 1: recall 1.00/1.00  precision 0.667/0.667 (agy/claude)
-#   run 2: recall 1.00/1.00  precision 0.667/0.667
-#   run 3: recall 1.00/1.00  precision 0.667/0.667
-# The one false positive every run is agy and claude both flagging
-# clean-01.diff FAIL (its `readable()` claims a contiguous run without
-# accounting for the window's circular indexing) — a real, reproducible
-# reviewer disagreement, not run-to-run noise, so the precision floor sits
-# below 1.0 on purpose rather than being tuned to hide it.
+#   run 1: recall 1.00/1.00  precision 1.00/1.00 (agy/claude)
+#   run 2: recall 1.00/1.00  precision 1.00/1.00
+#   run 3: recall 1.00/1.00  precision 1.00/1.00
+# clean-01.diff previously read as ambiguous (both lanes FAILed it every
+# run) and was replaced (word-count helpers with an inline unit test, no
+# plausible defect in any MANIFEST class); with that fixed, all three runs
+# show perfect recall and precision. agy twice returned a response with no
+# structured_output field on a clean diff (a real agy reliability wrinkle,
+# not a fixture problem — see the W-3 report); that lane is scored as
+# NotRun, not a false positive, and did not affect these numbers.
 recall_agy = ">= 1.0"
 recall_claude = ">= 1.0"
-precision_agy = ">= 0.66"
-precision_claude = ">= 0.66"
+precision_agy = ">= 1.0"
+precision_claude = ">= 1.0"
 exit = 0
 
 [record]
