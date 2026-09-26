@@ -33,10 +33,13 @@ recall_agy = ">= 1.0"
 recall_claude = ">= 1.0"
 precision_agy = ">= 1.0"
 precision_claude = ">= 1.0"
+# A recall over zero scored planted diffs is not a measurement.
+scored_planted_agy = ">= 1"
+scored_planted_claude = ">= 1"
 exit = 0
 
 [record]
 target_duration_s = 280
 resolution = "1920x1080"
 terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
-narration_may_cite = ["n", "recall_agy", "recall_claude", "precision_agy", "precision_claude", "apr_lane"]
+narration_may_cite = ["n", "recall_agy", "recall_claude", "precision_agy", "precision_claude", "apr_lane", "notrun_agy", "notrun_claude"]

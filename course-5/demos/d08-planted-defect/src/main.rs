@@ -13,9 +13,11 @@
 //! refused at `apr=0.69.3` — and is shown on screen labelled, never faked.
 //!
 //! Provable contract: planted-defect-sweep-v1 — `n` lands in `[4, 20]` and
-//! is even, the subset stays clean:planted balanced, both lanes ran on
-//! every diff in it, and each lane's measured recall/precision meets a
-//! floor set from three prior runs (never tuned to match a single run).
+//! is even, the subset stays clean:planted balanced, a lane that returned no
+//! verdict on a diff is counted NotRun and scored as neither right nor wrong
+//! (never as a correct PASS), every review is either scored or NotRun, and
+//! each lane's recall/precision over its scored reviews meets a floor set
+//! from three prior runs (never tuned to match a single run).
 
 use d04_json_verdict::lanes::{self, Lane};
 use d08_planted_defect::corpus::{self, ManifestFile};
@@ -32,9 +34,40 @@ const BUDGET_S: f64 = 250.0;
 struct DiffRun {
     file: ManifestFile,
     agy_failed: bool,
+    agy_notrun: bool,
     agy_lines: Vec<i64>,
     claude_failed: bool,
+    claude_notrun: bool,
     claude_lines: Vec<i64>,
+}
+
+/// Score one lane over only the reviews where it returned a verdict. A NotRun
+/// review is excluded, so it can never count as a correct PASS. Returns the
+/// score and how many reviews were NotRun.
+fn score_scored(runs: &[DiffRun], agy: bool) -> (Scored, usize) {
+    let kept: Vec<&DiffRun> = runs
+        .iter()
+        .filter(|r| !if agy { r.agy_notrun } else { r.claude_notrun })
+        .collect();
+    let refs: Vec<&ManifestFile> = kept.iter().map(|r| &r.file).collect();
+    let failed: Vec<bool> = kept
+        .iter()
+        .map(|r| if agy { r.agy_failed } else { r.claude_failed })
+        .collect();
+    let lines: Vec<Vec<i64>> = kept
+        .iter()
+        .map(|r| {
+            if agy {
+                r.agy_lines.clone()
+            } else {
+                r.claude_lines.clone()
+            }
+        })
+        .collect();
+    (
+        sweep::score_lane(&refs, &failed, &lines),
+        runs.len() - kept.len(),
+    )
 }
 
 fn review_one(schema_path: &Path, fixtures_dir: &Path, file: &ManifestFile) -> (DiffRun, f64) {
@@ -65,8 +98,10 @@ fn review_one(schema_path: &Path, fixtures_dir: &Path, file: &ManifestFile) -> (
         DiffRun {
             file: file.clone(),
             agy_failed: agy.lane == Lane::Fail,
+            agy_notrun: agy.lane == Lane::NotRun,
             agy_lines: agy.finding_lines,
             claude_failed: claude.lane == Lane::Fail,
+            claude_notrun: claude.lane == Lane::NotRun,
             claude_lines: claude.finding_lines,
         },
         slowest,
@@ -128,33 +163,26 @@ fn main() {
     let balanced = clean_count == planted_count;
     assert!(balanced, "clean:planted subset must stay balanced");
 
-    let refs: Vec<&ManifestFile> = runs.iter().map(|r| &r.file).collect();
-    let agy_failed: Vec<bool> = runs.iter().map(|r| r.agy_failed).collect();
-    let agy_lines: Vec<Vec<i64>> = runs.iter().map(|r| r.agy_lines.clone()).collect();
-    let claude_failed: Vec<bool> = runs.iter().map(|r| r.claude_failed).collect();
-    let claude_lines: Vec<Vec<i64>> = runs.iter().map(|r| r.claude_lines.clone()).collect();
-
-    let agy_scored: Scored = sweep::score_lane(&refs, &agy_failed, &agy_lines);
-    let claude_scored: Scored = sweep::score_lane(&refs, &claude_failed, &claude_lines);
+    let (agy_scored, notrun_agy) = score_scored(&runs, true);
+    let (claude_scored, notrun_claude) = score_scored(&runs, false);
     let apr_lane = lanes::apr_lane_notrun_label();
 
     println!(
         "n = {n} ({clean_count} clean + {planted_count} planted), total wall {total_wall_s:.1}s"
     );
-    println!(
-        "agy:    recall {:.2} precision {:.2} (tp={} fp={})",
-        agy_scored.recall,
-        agy_scored.precision,
-        agy_scored.true_positives,
-        agy_scored.false_positives
-    );
-    println!(
-        "claude: recall {:.2} precision {:.2} (tp={} fp={})",
-        claude_scored.recall,
-        claude_scored.precision,
-        claude_scored.true_positives,
-        claude_scored.false_positives
-    );
+    for (name, s, notrun) in [
+        ("agy:   ", &agy_scored, notrun_agy),
+        ("claude:", &claude_scored, notrun_claude),
+    ] {
+        println!(
+            "{name} recall {:.2} precision {:.2} (tp={} fp={}) over {} scored reviews, {notrun} NotRun",
+            s.recall,
+            s.precision,
+            s.true_positives,
+            s.false_positives,
+            s.planted_total + s.clean_total
+        );
+    }
     println!("apr lane: {apr_lane} (never invoked: --json-schema is refused at apr=0.69.3)");
 
     let measured: BTreeMap<String, serde_json::Value> = [
@@ -167,6 +195,10 @@ fn main() {
         ("precision_agy", json!(agy_scored.precision)),
         ("recall_claude", json!(claude_scored.recall)),
         ("precision_claude", json!(claude_scored.precision)),
+        ("notrun_agy", json!(notrun_agy)),
+        ("notrun_claude", json!(notrun_claude)),
+        ("scored_planted_agy", json!(agy_scored.planted_total)),
+        ("scored_planted_claude", json!(claude_scored.planted_total)),
         ("apr_lane", json!(apr_lane)),
         ("total_wall_s", json!(total_wall_s)),
         ("exit", json!(0)),
@@ -184,6 +216,16 @@ fn main() {
     );
     assert_eq!(n % 2, 0, "planted-defect-sweep-v1: n is even (balanced)");
     assert_eq!(clean_count, planted_count);
+    for (lane, s, notrun) in [
+        ("agy", &agy_scored, notrun_agy),
+        ("claude", &claude_scored, notrun_claude),
+    ] {
+        assert_eq!(
+            (s.planted_total + s.clean_total) as usize + notrun,
+            n as usize,
+            "planted-defect-sweep-v1: every {lane} review is scored or NotRun"
+        );
+    }
     assert_eq!(
         apr_lane, "NotRun{Refused(--json-schema)}",
         "planted-defect-sweep-v1: the apr lane is labelled, never faked as a pass"
