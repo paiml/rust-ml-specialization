@@ -37,6 +37,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "d04-json-verdict"
+version = "0.1.0"
+dependencies = [
+ "demo-kit",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "d07-quorum"
+version = "0.1.0"
+dependencies = [
+ "d04-json-verdict",
+ "demo-kit",
+ "serde_json",
+]
+
+[[package]]
+name = "d08-planted-defect"
+version = "0.1.0"
+dependencies = [
+ "d04-json-verdict",
+ "demo-kit",
+ "serde",
+ "serde_json",
+ "toml",
+]
+
+[[package]]
 name = "d13-reducer"
 version = "0.1.0"
 dependencies = [

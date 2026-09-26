@@ -1,0 +1,5 @@
+# The declared model weights live on the host, never in this public repo
+# (MEGA-001 H-11). The host provisions this path as a symlink to its local
+# copy of Qwen3.5-4B-Q4_K_M.gguf (sha256 pinned in demo.toml); it is never
+# committed.
+models/

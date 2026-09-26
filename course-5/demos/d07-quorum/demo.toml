@@ -1,0 +1,24 @@
+id = "d07-quorum"
+title = "Heterogeneous quorum: agy + claude lanes review one diff; the apr lane is refused at the pin"
+lesson = "rfml5/4.2"
+apr = "=0.69.3"
+agy = "=1.2.11"
+host_class = "any"
+needs = ["agy"]
+fixtures = { dir = "../fixtures/diffs", sha256 = "bc1eae7eab61388cf33e6b6175729cac3753374e33e851f07169f561eb8f80ed" }
+
+[[step]]
+cmd = "cargo run -q -p d07-quorum"
+
+[assert]
+lanes_run = 2
+quorum = "FAIL"
+blocked_by_count = ">= 1"
+apr_lane = "NotRun{Refused(--json-schema)}"
+exit = 0
+
+[record]
+target_duration_s = 90
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["lanes_run", "quorum", "apr_lane"]

@@ -1,0 +1,31 @@
+--- a/src/cli/args.rs
++++ b/src/cli/args.rs
+@@ -1,14 +1,26 @@
+ //! Command-line argument parsing for the server entry point.
+
++pub struct Options {
++    pub port: u32,
++    pub verbose: bool,
++}
++
+ /// Parses `argv`, falling back to the default port when none is given.
+-pub fn port_from_args(args: &[String]) -> u32 {
+-    if args.len() < 2 {
+-        return 8080;
+-    }
+-    8080
+-}
++pub fn parse(args: &[String]) -> Options {
++    let verbose = args.iter().any(|a| a == "-v" || a == "--verbose");
++    let port = if args.len() > 1 {
++        let port: u32 = args[1].parse().unwrap();
++        port
++    } else {
++        8080
++    };
++    Options { port, verbose }
++}
++
++pub fn port_from_args(args: &[String]) -> u32 {
++    parse(args).port
++}

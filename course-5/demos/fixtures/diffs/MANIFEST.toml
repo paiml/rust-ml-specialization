@@ -1,0 +1,128 @@
+# Corpus manifest for MEGA-001 W-3 (planted-defect-corpus-v1).
+#
+# 10 clean + 10 planted-defect unified diffs of small Rust changes. Every
+# entry here must have exactly one matching file in this directory and
+# every file in this directory must have exactly one entry here (a
+# bijection) — checked by d08-planted-defect's corpus test.
+#
+# `marker_line` is the 1-based line number **within the .diff file itself**,
+# not a line number in some reconstructed source tree — these diffs are fed
+# to review lanes (agy, claude) as opaque unified-diff text, never applied
+# with `patch`, so "line N" means line N of the diff text as the reviewer
+# reads it. `marker_text` is that line's exact content (including its
+# leading `+`); the corpus test asserts
+# `lines(file)[marker_line - 1] == marker_text` for every planted file, and
+# a mutation test proves that deleting that line turns the check RED.
+#
+# The marker text is never a comment calling out the bug — a reviewer has to
+# find the defect from the code, not from a label.
+
+[[file]]
+path = "clean-01.diff"
+planted = false
+
+[[file]]
+path = "clean-02.diff"
+planted = false
+
+[[file]]
+path = "clean-03.diff"
+planted = false
+
+[[file]]
+path = "clean-04.diff"
+planted = false
+
+[[file]]
+path = "clean-05.diff"
+planted = false
+
+[[file]]
+path = "clean-06.diff"
+planted = false
+
+[[file]]
+path = "clean-07.diff"
+planted = false
+
+[[file]]
+path = "clean-08.diff"
+planted = false
+
+[[file]]
+path = "clean-09.diff"
+planted = false
+
+[[file]]
+path = "clean-10.diff"
+planted = false
+
+[[file]]
+path = "planted-01.diff"
+planted = true
+class = "off-by-one"
+marker_line = 29
+marker_text = "+        for i in 0..=self.len {"
+
+[[file]]
+path = "planted-02.diff"
+planted = true
+class = "unchecked-unwrap-user-input"
+marker_line = 21
+marker_text = "+        let port: u32 = args[1].parse().unwrap();"
+
+[[file]]
+path = "planted-03.diff"
+planted = true
+class = "integer-overflow"
+marker_line = 25
+marker_text = "+        let capacity: u8 = (self.items.len() * 2) as u8;"
+
+[[file]]
+path = "planted-04.diff"
+planted = true
+class = "wrong-comparison"
+marker_line = 27
+marker_text = "+        if attempt > self.max_retries {"
+
+[[file]]
+path = "planted-05.diff"
+planted = true
+class = "missing-error-propagation"
+marker_line = 33
+marker_text = "+        let _ = self.writer.flush();"
+
+[[file]]
+path = "planted-06.diff"
+planted = true
+class = "resource-leak"
+marker_line = 31
+marker_text = "+        std::mem::forget(handle);"
+
+[[file]]
+path = "planted-07.diff"
+planted = true
+class = "race-condition"
+marker_line = 27
+marker_text = "+        unsafe { *ptr += 1; }"
+
+[[file]]
+path = "planted-08.diff"
+planted = true
+class = "sql-injection"
+marker_line = 19
+marker_text = "+        let query = format!(\"SELECT id, name FROM users WHERE name = '{}'\", prefix);"
+
+[[file]]
+path = "planted-09.diff"
+planted = true
+class = "path-traversal"
+marker_line = 22
+marker_text = "+        let full_path = self.base_dir.join(requested_path);"
+
+[[file]]
+path = "planted-10.diff"
+planted = true
+class = "swapped-args"
+marker_line = 25
+marker_text = "+    let diff = subtract(coupon, charged);"

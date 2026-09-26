@@ -1,0 +1,37 @@
+--- a/src/buffer/window.rs
++++ b/src/buffer/window.rs
+@@ -1,6 +1,8 @@
+ //! A fixed-size sliding window over a byte buffer.
+
++use std::cmp::min;
++
+ pub struct Window {
+     data: Vec<u8>,
+     start: usize,
+     len: usize,
+ }
+@@ -12,6 +14,20 @@ impl Window {
+         Window { data, start: 0, len: 0 }
+     }
+
++    /// Number of free bytes remaining before the window must roll over.
++    ///
++    /// Uses `saturating_sub` so a window that is already full (or, by a
++    /// caller bug, reports more filled than capacity) never underflows.
++    pub fn free(&self) -> usize {
++        self.data.len().saturating_sub(self.len)
++    }
++
++    /// True once the window cannot accept another byte without evicting.
++    pub fn is_full(&self) -> bool {
++        self.free() == 0
++    }
++
++    /// Largest contiguous run of bytes we can hand back right now.
++    pub fn readable(&self) -> usize {
++        min(self.len, self.data.len())
++    }
++
+     pub fn push(&mut self, byte: u8) {
+         let idx = (self.start + self.len) % self.data.len();
+         self.data[idx] = byte;
