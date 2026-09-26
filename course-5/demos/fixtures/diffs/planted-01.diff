@@ -1,0 +1,38 @@
+--- a/src/buffer/ring.rs
++++ b/src/buffer/ring.rs
+@@ -1,17 +1,29 @@
+ //! A fixed-size ring buffer of scores, newest last.
+
+ pub struct Ring {
+     data: Vec<i32>,
+     len: usize,
+ }
+
+ impl Ring {
+     pub fn new(capacity: usize) -> Self {
+         Ring { data: vec![0; capacity], len: 0 }
+     }
+
+     pub fn push(&mut self, value: i32) {
+         if self.len < self.data.len() {
+             self.data[self.len] = value;
+             self.len += 1;
+         }
+     }
+
+-    pub fn sum(&self) -> i32 {
+-        self.data[..self.len].iter().sum()
+-    }
++    /// Sum of every filled slot, plus a running total for logging.
++    pub fn sum(&self) -> i32 {
++        let mut total = 0;
++        for i in 0..=self.len {
++            total += self.data[i];
++        }
++        total
++    }
++
++    pub fn is_empty(&self) -> bool {
++        self.len == 0
++    }
+ }

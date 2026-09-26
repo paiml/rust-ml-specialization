@@ -1,0 +1,33 @@
+--- a/src/db/query.rs
++++ b/src/db/query.rs
+@@ -1,12 +1,26 @@
+ //! Query construction for the user lookup path.
+
++/// A query with its placeholders kept separate from the values, so the
++/// driver binds them instead of the string ever containing user input.
++pub struct BoundQuery {
++    pub sql: String,
++    pub params: Vec<String>,
++}
++
+ pub struct UserLookup;
+
+ impl UserLookup {
+-    pub fn by_name(&self, name: &str) -> String {
+-        format!("SELECT * FROM users WHERE name = '{}'", name)
+-    }
++    /// Builds a parameterized lookup: the name never touches the SQL text.
++    pub fn by_name(&self, name: &str) -> BoundQuery {
++        BoundQuery {
++            sql: "SELECT * FROM users WHERE name = ?".to_string(),
++            params: vec![name.to_string()],
++        }
++    }
++
++    pub fn by_id(&self, id: u64) -> BoundQuery {
++        BoundQuery {
++            sql: "SELECT * FROM users WHERE id = ?".to_string(),
++            params: vec![id.to_string()],
++        }
++    }
+ }

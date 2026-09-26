@@ -1,0 +1,40 @@
+id = "d08-planted-defect"
+title = "Planted-defect sweep: agy + claude lanes over a budget-sized corpus subset"
+lesson = "rfml5/5.1"
+apr = "=0.69.3"
+agy = "=1.2.11"
+host_class = "any"
+needs = ["agy", "claude"]
+fixtures = { dir = "../fixtures/diffs", sha256 = "bc1eae7eab61388cf33e6b6175729cac3753374e33e851f07169f561eb8f80ed" }
+
+[[step]]
+cmd = "cargo run -q -p d08-planted-defect"
+
+[assert]
+n = ">= 4"
+balanced = true
+lanes_run = 2
+apr_lane = "NotRun{Refused(--json-schema)}"
+# Floors set from three real runs on n=4 (2 clean + 2 planted: clean-01,
+# clean-02, planted-01, planted-02), recorded in the W-3 inbox report, never
+# tuned to a single run: the minimum observed value across all three, so a
+# fourth run below what was already measured is a real regression.
+#   run 1: recall 1.00/1.00  precision 0.667/0.667 (agy/claude)
+#   run 2: recall 1.00/1.00  precision 0.667/0.667
+#   run 3: recall 1.00/1.00  precision 0.667/0.667
+# The one false positive every run is agy and claude both flagging
+# clean-01.diff FAIL (its `readable()` claims a contiguous run without
+# accounting for the window's circular indexing) — a real, reproducible
+# reviewer disagreement, not run-to-run noise, so the precision floor sits
+# below 1.0 on purpose rather than being tuned to hide it.
+recall_agy = ">= 1.0"
+recall_claude = ">= 1.0"
+precision_agy = ">= 0.66"
+precision_claude = ">= 0.66"
+exit = 0
+
+[record]
+target_duration_s = 280
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["n", "recall_agy", "recall_claude", "precision_agy", "precision_claude", "apr_lane"]

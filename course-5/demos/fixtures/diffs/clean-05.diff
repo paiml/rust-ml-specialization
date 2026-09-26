@@ -1,0 +1,40 @@
+--- a/src/grid/mod.rs
++++ b/src/grid/mod.rs
+@@ -1,17 +1,25 @@
+ //! A row-major 2D grid backed by a flat Vec.
+
+ pub struct Grid<T> {
+     width: usize,
+     height: usize,
+     cells: Vec<T>,
+ }
+
+ impl<T: Clone + Default> Grid<T> {
+     pub fn new(width: usize, height: usize) -> Self {
+         Grid {
+             width,
+             height,
+             cells: vec![T::default(); width * height],
+         }
+     }
+
+-    pub fn at(&self, x: usize, y: usize) -> &T {
+-        &self.cells[y * self.width + x]
+-    }
++    /// Returns `None` for any coordinate outside the grid instead of
++    /// panicking, so callers on an untrusted coordinate can decide.
++    pub fn at(&self, x: usize, y: usize) -> Option<&T> {
++        if x >= self.width || y >= self.height {
++            return None;
++        }
++        self.cells.get(y * self.width + x)
++    }
++
++    pub fn set(&mut self, x: usize, y: usize, value: T) -> bool {
++        if x >= self.width || y >= self.height {
++            return false;
++        }
++        self.cells[y * self.width + x] = value;
++        true
++    }
+ }

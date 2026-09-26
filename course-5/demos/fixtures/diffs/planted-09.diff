@@ -1,0 +1,29 @@
+--- a/src/fs/download.rs
++++ b/src/fs/download.rs
+@@ -1,14 +1,27 @@
+ //! Serves files from the reports directory to authenticated clients.
+
+-use std::path::PathBuf;
++use std::fs;
++use std::path::PathBuf;
+
+ pub struct ReportServer {
+     base_dir: PathBuf,
+ }
+
+ impl ReportServer {
+     pub fn new(base_dir: PathBuf) -> Self {
+         ReportServer { base_dir }
+     }
+
+-}
++    /// Reads the client-requested report relative to the reports directory.
++    pub fn read_report(&self, requested_path: &str) -> std::io::Result<Vec<u8>> {
++        let full_path = self.base_dir.join(requested_path);
++        fs::read(full_path)
++    }
++
++    pub fn report_exists(&self, requested_path: &str) -> bool {
++        self.base_dir.join(requested_path).exists()
++    }
++}

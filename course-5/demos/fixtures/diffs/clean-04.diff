@@ -1,0 +1,41 @@
+--- a/src/config/settings.rs
++++ b/src/config/settings.rs
+@@ -1,13 +1,27 @@
+ //! Runtime configuration, loaded from environment with sane fallbacks.
+
++#[derive(Debug, Clone)]
+ pub struct Settings {
+     pub max_connections: u32,
+     pub request_timeout_ms: u64,
+     pub log_level: String,
+ }
+
++impl Default for Settings {
++    fn default() -> Self {
++        Settings {
++            max_connections: 64,
++            request_timeout_ms: 5_000,
++            log_level: "info".to_string(),
++        }
++    }
++}
++
+ impl Settings {
+     pub fn from_env() -> Self {
+-        Settings {
+-            max_connections: 64,
+-            request_timeout_ms: 5_000,
+-            log_level: "info".to_string(),
+-        }
++        let mut s = Settings::default();
++        if let Ok(v) = std::env::var("APP_MAX_CONNECTIONS") {
++            if let Ok(n) = v.parse() {
++                s.max_connections = n;
++            }
++        }
++        if let Ok(level) = std::env::var("APP_LOG_LEVEL") {
++            s.log_level = level;
++        }
++        s
+     }
+ }

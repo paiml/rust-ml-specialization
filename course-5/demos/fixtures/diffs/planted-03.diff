@@ -1,0 +1,32 @@
+--- a/src/stats/histogram.rs
++++ b/src/stats/histogram.rs
+@@ -1,15 +1,27 @@
+ //! A fixed-width histogram over small item batches.
+
+ pub struct Histogram {
+     items: Vec<u32>,
+ }
+
+ impl Histogram {
+     pub fn new(items: Vec<u32>) -> Self {
+         Histogram { items }
+     }
+
+-    pub fn bucket_count(&self) -> u32 {
+-        8
+-    }
++    pub fn bucket_count(&self) -> u32 {
++        8
++    }
++
++    /// Suggested backing-array capacity: twice the item count, rounded to
++    /// fit the compact on-disk header format.
++    pub fn suggested_capacity(&self) -> u8 {
++        let capacity: u8 = (self.items.len() * 2) as u8;
++        capacity
++    }
++
++    pub fn total(&self) -> u64 {
++        self.items.iter().map(|v| *v as u64).sum()
++    }
+ }

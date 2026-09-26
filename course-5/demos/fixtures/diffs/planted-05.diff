@@ -1,0 +1,41 @@
+--- a/src/io/writer.rs
++++ b/src/io/writer.rs
+@@ -1,18 +1,29 @@
+ //! Buffered writer for the append-only event log.
+
+ use std::fs::File;
+-use std::io::{self, Write};
++use std::io::{self, BufWriter, Write};
+
+ pub struct EventLog {
+-    file: File,
++    writer: BufWriter<File>,
+ }
+
+ impl EventLog {
+     pub fn open(path: &str) -> io::Result<Self> {
+         let file = File::create(path)?;
+-        Ok(EventLog { file })
++        Ok(EventLog { writer: BufWriter::new(file) })
+     }
+
+-    pub fn append(&mut self, line: &str) -> io::Result<()> {
+-        self.file.write_all(line.as_bytes())?;
+-        self.file.write_all(b"\n")
++    pub fn append(&mut self, line: &str) -> io::Result<()> {
++        self.writer.write_all(line.as_bytes())?;
++        self.writer.write_all(b"\n")
++    }
++
++    /// Called when the log is being rotated: push buffered bytes to disk
++    /// before the old handle is dropped.
++    pub fn rotate(&mut self) {
++        let _ = self.writer.flush();
++    }
++}
++
++impl Drop for EventLog {
++    fn drop(&mut self) {
++        self.rotate();
+     }
+ }

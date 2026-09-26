@@ -1,0 +1,12 @@
+[package]
+name = "d04-json-verdict"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "D04 json-verdict (Plan B): --json-schema is refused at apr=0.69.3, so the demo proves the refusal and ships the client-side schema validator it would use (lesson 3.2)."
+
+[dependencies]
+demo-kit = { path = "../demo-kit" }
+serde = { workspace = true }
+serde_json = { workspace = true }

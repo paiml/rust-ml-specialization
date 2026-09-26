@@ -1,0 +1,38 @@
+--- a/src/fs/safe_path.rs
++++ b/src/fs/safe_path.rs
+@@ -1,10 +1,30 @@
+ //! Resolve a user-requested file path against a fixed base directory
+ //! without ever escaping it.
+
+-use std::path::PathBuf;
++use std::path::{Component, Path, PathBuf};
+
+-pub fn resolve(base_dir: &PathBuf, requested_path: &str) -> PathBuf {
+-    base_dir.join(requested_path)
+-}
++/// Joins `requested_path` onto `base_dir`, rejecting any component that
++/// would climb out of the base (`..`, an absolute path, or a root prefix).
++/// Returns `None` instead of a path outside `base_dir`.
++pub fn resolve(base_dir: &Path, requested_path: &str) -> Option<PathBuf> {
++    let mut out = base_dir.to_path_buf();
++    for component in Path::new(requested_path).components() {
++        match component {
++            Component::Normal(part) => out.push(part),
++            Component::CurDir => {}
++            Component::ParentDir | Component::RootDir | Component::Prefix(_) => return None,
++        }
++    }
++    Some(out)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn rejects_parent_dir_climb() {
++        let base = PathBuf::from("/srv/data");
++        assert!(resolve(&base, "../../etc/passwd").is_none());
++        assert_eq!(resolve(&base, "reports/q1.csv"), Some(base.join("reports/q1.csv")));
++    }
++}
