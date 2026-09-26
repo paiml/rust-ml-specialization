@@ -1,0 +1,24 @@
+id = "d02-cold-vs-resident"
+title = "Cold runs, measured: five fresh processes, then one resident server"
+lesson = "rfml5/1.1"
+apr = "=0.69.3"
+agy = "none"
+model = { name = "Qwen3.5-4B-Q4_K_M", sha256 = "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4", path = "../models/Qwen3.5-4B-Q4_K_M.gguf" }
+host_class = "gx10-cuda"
+needs = ["apr run --json", "apr serve run"]
+
+[[step]]
+cmd = "cargo run -q -p d02-cold-vs-resident"
+
+[assert]
+cold_runs = 5
+cold_on_gpu = 5
+resident_runs = 5
+texts_returned = 10
+exit = 0
+
+[record]
+target_duration_s = 300
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["cold_ms", "cold_median_ms", "resident_ms", "resident_median_ms", "load_ms"]

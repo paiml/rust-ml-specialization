@@ -37,6 +37,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "d01-serve-hello"
+version = "0.1.0"
+dependencies = [
+ "demo-kit",
+ "serde_json",
+]
+
+[[package]]
+name = "d02-cold-vs-resident"
+version = "0.1.0"
+dependencies = [
+ "demo-kit",
+ "serde_json",
+]
+
+[[package]]
+name = "d09-parity-receipt"
+version = "0.1.0"
+dependencies = [
+ "demo-kit",
+ "serde_json",
+]
+
+[[package]]
 name = "d13-reducer"
 version = "0.1.0"
 dependencies = [

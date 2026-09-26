@@ -1,0 +1,11 @@
+[package]
+name = "d02-cold-vs-resident"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "D02: cold apr run x5 vs resident serve x5 (lesson 1.1)"
+
+[dependencies]
+demo-kit = { path = "../demo-kit" }
+serde_json.workspace = true
