@@ -37,6 +37,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "d11-refusals"
+version = "0.1.0"
+dependencies = [
+ "demo-kit",
+ "serde_json",
+]
+
+[[package]]
 name = "d13-reducer"
 version = "0.1.0"
 dependencies = [
