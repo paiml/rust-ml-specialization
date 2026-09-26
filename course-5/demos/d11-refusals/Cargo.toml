@@ -1,0 +1,11 @@
+[package]
+name = "d11-refusals"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "D11: refused apr verbs/flags shown by name with apr's own reason (Plan B, lesson 3.2)."
+
+[dependencies]
+demo-kit = { path = "../demo-kit" }
+serde_json.workspace = true
