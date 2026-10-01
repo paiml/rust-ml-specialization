@@ -100,19 +100,43 @@ fn from_value(v: &Value) -> Result<(Lane, Vec<i64>), String> {
 pub fn run_agy_lane(schema_path: &Path, diff_text: &str) -> LaneOutcome {
     let prompt = review_prompt(diff_text);
     let start = Instant::now();
+    // agy may run as a different uid (the course wrapper sudo-runs it), so it
+    // cannot always read a schema under a private checkout. Hand it a
+    // world-readable copy under /tmp instead.
+    let shared = share_schema(schema_path);
     let run = Command::new("agy")
         .arg("-p")
         .arg(&prompt)
         .arg("--output-format")
         .arg("json")
         .arg("--json-schema")
-        .arg(schema_path)
+        .arg(shared.as_deref().unwrap_or(schema_path))
         .output();
+    if let Some(p) = &shared {
+        let _ = std::fs::remove_file(p);
+    }
     finish_lane("agy", start.elapsed(), run, |top| {
         top.get("structured_output")
             .cloned()
             .ok_or_else(|| "agy output had no structured_output field".to_string())
     })
+}
+
+/// Copy `schema_path` to a unique mode-0644 file under the system temp dir.
+/// `None` if the copy fails, in which case the caller uses the original path.
+fn share_schema(schema_path: &Path) -> Option<std::path::PathBuf> {
+    use std::os::unix::fs::PermissionsExt;
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_nanos();
+    let dst = std::env::temp_dir().join(format!(
+        "verdict-schema-{}-{nanos}.json",
+        std::process::id()
+    ));
+    std::fs::copy(schema_path, &dst).ok()?;
+    std::fs::set_permissions(&dst, std::fs::Permissions::from_mode(0o644)).ok()?;
+    Some(dst)
 }
 
 /// `claude -p <prompt> --output-format json`; parses the `result` field

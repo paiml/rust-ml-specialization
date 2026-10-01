@@ -57,6 +57,48 @@ pub fn lint_contract(src: &str) -> Result<(), Vec<String>> {
     }
 }
 
+/// The same contract for a bash demo: a leading `# Provable contract:` comment,
+/// a `[[ ]] || { echo "contract: FAIL ..."; exit 1; }` guard, and an
+/// `echo "contract: ... OK"` after the last guard.
+pub fn lint_shell_contract(src: &str) -> Result<(), Vec<String>> {
+    let mut findings = Vec::new();
+    let named = src
+        .lines()
+        .take_while(|l| l.starts_with('#') || l.trim().is_empty())
+        .any(|l| {
+            l.trim_start_matches('#')
+                .trim()
+                .strip_prefix("Provable contract:")
+                .is_some_and(|rest| !rest.trim().is_empty())
+        });
+    if !named {
+        findings.push("demo-contract-docstring-v1: no leading `# Provable contract:` comment with a non-empty name".into());
+    }
+    let last_guard = src
+        .lines()
+        .enumerate()
+        .filter(|(_, l)| l.contains("contract: FAIL"))
+        .map(|(i, _)| i)
+        .max();
+    match last_guard {
+        None => findings.push("script never fails the contract (`contract: FAIL`)".into()),
+        Some(g) => {
+            let prints = src.lines().skip(g + 1).any(|l| {
+                let l = l.trim_start();
+                l.starts_with("echo \"contract: ") && l.contains(" OK\"")
+            });
+            if !prints {
+                findings.push("no `echo \"contract: … OK\"` after the last contract guard".into());
+            }
+        }
+    }
+    if findings.is_empty() {
+        Ok(())
+    } else {
+        Err(findings)
+    }
+}
+
 /// The text of `fn main`'s body, by brace matching from its opening brace.
 fn main_body(src: &str) -> Option<&str> {
     let start = src.find("fn main(")?;
@@ -75,45 +117,6 @@ fn main_body(src: &str) -> Option<&str> {
         }
     }
     None
-}
-
-/// Bash twin of [`lint_contract`] for demos that ship `quorum.sh`-style scripts instead of
-/// `src/main.rs`: a leading `# Provable contract:` comment, at least one
-/// `[[ … ]] || { … exit 1; }` assertion, and an `echo "contract: … OK"` after the last one.
-pub fn lint_contract_sh(src: &str) -> Result<(), Vec<String>> {
-    let mut findings = Vec::new();
-    let named = src.lines().take_while(|l| l.starts_with('#')).any(|l| {
-        l.trim_start_matches('#')
-            .trim()
-            .strip_prefix("Provable contract:")
-            .is_some_and(|rest| !rest.trim().is_empty())
-    });
-    if !named {
-        findings.push("demo-contract-docstring-v1: no leading `#` comment with a non-empty `Provable contract:` line".into());
-    }
-    let last_assert = src
-        .lines()
-        .enumerate()
-        .filter(|(_, l)| l.contains("[[") && l.contains("|| {") && l.contains("exit 1"))
-        .map(|(i, _)| i)
-        .max();
-    match last_assert {
-        None => findings.push("script asserts nothing (`[[ … ]] || { …; exit 1; }`)".into()),
-        Some(n) => {
-            if !src
-                .lines()
-                .skip(n + 1)
-                .any(|l| l.contains("echo \"contract: ") && l.contains(" OK"))
-            {
-                findings.push("no `echo \"contract: … OK\"` after the last assertion".into());
-            }
-        }
-    }
-    if findings.is_empty() {
-        Ok(())
-    } else {
-        Err(findings)
-    }
 }
 
 #[cfg(test)]
@@ -152,22 +155,22 @@ mod tests {
         assert!(lint_contract(src).is_err());
     }
 
+    const SH_OK: &str = "#!/usr/bin/env bash\n# D14.\n#\n# Provable contract: x-v1 + y-v1\nset -e\n[[ 1 == 1 ]] || { echo \"contract: FAIL x-v1\"; exit 1; }\necho \"contract: x-v1 + y-v1 OK\"\n";
+
+    #[test]
+    fn accepts_a_proper_shell_demo() {
+        assert_eq!(lint_shell_contract(SH_OK), Ok(()));
+    }
+
+    #[test]
+    fn shell_demo_without_guard_or_ok_is_refused() {
+        assert!(lint_shell_contract(&SH_OK.replace("contract: FAIL", "nope")).is_err());
+        assert!(lint_shell_contract(&SH_OK.replace("contract: x-v1 + y-v1 OK", "done")).is_err());
+        assert!(lint_shell_contract(&SH_OK.replace("Provable contract: x-v1 + y-v1", "")).is_err());
+    }
+
     #[test]
     fn empty_file_is_refused() {
         assert!(lint_contract("").is_err());
-    }
-
-    const SH: &str = "#!/usr/bin/env bash\n# Provable contract: x-v1 + y-v1\n[[ 1 == 1 ]] || { echo \"contract: FAIL x\"; exit 1; }\necho \"contract: x-v1 + y-v1 OK\"\n";
-
-    #[test]
-    fn bash_demo_with_contract_passes() {
-        assert!(lint_contract_sh(SH).is_ok());
-    }
-
-    #[test]
-    fn bash_demo_without_assertion_or_ok_line_is_refused() {
-        assert!(lint_contract_sh(&SH.replace("[[ 1 == 1 ]]", "true")).is_err());
-        assert!(lint_contract_sh(&SH.replace("contract: x-v1 + y-v1 OK", "done")).is_err());
-        assert!(lint_contract_sh(&SH.replace("Provable contract:", "Note:")).is_err());
     }
 }

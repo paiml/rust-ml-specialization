@@ -4,6 +4,7 @@
 
 mod card;
 mod lint;
+mod shell;
 
 use demo_kit::{pin, DemoManifest};
 use std::path::{Path, PathBuf};
@@ -71,15 +72,30 @@ pub fn verify_demo(dir: &Path) -> Vec<String> {
             manifest.record.target_duration_s
         ));
     }
-    // Bash demos (no Rust harness) ship `quorum.sh` and are linted by its bash twin.
-    let sh = dir.join("quorum.sh");
-    match std::fs::read_to_string(dir.join("src/main.rs")) {
-        Ok(src) => findings.extend(lint::lint_contract(&src).err().unwrap_or_default()),
-        Err(_) if sh.exists() => match std::fs::read_to_string(&sh) {
-            Ok(src) => findings.extend(lint::lint_contract_sh(&src).err().unwrap_or_default()),
-            Err(e) => findings.push(format!("quorum.sh: {e}")),
-        },
-        Err(e) => findings.push(format!("src/main.rs: {e}")),
+    // A bash demo has no src/main.rs; its script is named by a `bash X.sh` step.
+    let script = manifest
+        .step
+        .iter()
+        .find_map(|s| s.cmd.strip_prefix("bash ").map(str::trim));
+    if let Some(script) = script.filter(|_| !dir.join("src/main.rs").is_file()) {
+        match std::fs::read_to_string(dir.join(script)) {
+            Ok(src) => findings.extend(lint::lint_shell_contract(&src).err().unwrap_or_default()),
+            Err(e) => findings.push(format!("{script}: {e}")),
+        }
+    } else {
+        match std::fs::read_to_string(dir.join("src/main.rs")) {
+            Ok(src) => findings.extend(lint::lint_contract(&src).err().unwrap_or_default()),
+            Err(e) => findings.push(format!("src/main.rs: {e}")),
+        }
+    }
+    // every bash script in the demo goes through bashrs + shellcheck
+    let mut scripts: Vec<PathBuf> = std::fs::read_dir(dir)
+        .map(|rd| rd.filter_map(|e| e.ok().map(|e| e.path())).collect())
+        .unwrap_or_default();
+    scripts.retain(|p| p.extension().is_some_and(|e| e == "sh"));
+    scripts.sort();
+    for script in scripts {
+        findings.extend(shell::lint_script(&script));
     }
     findings
 }

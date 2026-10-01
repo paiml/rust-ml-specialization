@@ -25,7 +25,9 @@ Stop condition: if no diff shows a homogeneous-vs-heterogeneous gap, escalate in
 | planted-09 | 4/5 | 5/5 | 4/5 | 1/0/1 | 5/5 |
 | planted-10 | 3/5 | 5/5 | 2/5 | 2/0/3 | 5/5 |
 
-The rule selects **planted-10** (not adopted yet: see below). Every gemini non-catch in the
-probe was a NotRun (one empty/off-schema, one 124 timeout), never a PASS: no model returned PASS
-on any planted diff in 150 runs. The gap is reliability (a homogeneous panel can go NotRun
-together), not a shared blind spot. Awaiting a ruling before `quorum.sh` switches diffs.
+The rule selects **planted-10**, and `quorum.sh` runs it (Noah ruled: adopt). Teach it for what it is:
+a **reliability gap, not a detection gap**. No model returned PASS on any planted diff in 150 runs;
+every gemini non-catch was a NotRun (one empty/off-schema, one 124 timeout). Where a homogeneous
+panel and a heterogeneous one diverge, it is NotRun vs FAIL: three copies of one model can fail to
+report together, three families rarely do. Whether a given run catches the bug is a receipt fact,
+never a contract claim.

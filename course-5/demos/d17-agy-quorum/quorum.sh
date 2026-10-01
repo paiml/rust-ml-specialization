@@ -7,8 +7,8 @@
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 PIN=1.2.14 TIMEOUT=${LANE_TIMEOUT_S:-120} GRACE=${LANE_GRACE_S:-10}
-DIFF=../fixtures/diffs/planted-01.diff SCHEMA=../d04-json-verdict/schemas/verdict.json
-DIFF_SHA=2de769e98ab5588e3bba95f5edf656c99f81c0f0554e6f62d14f1f5a9aa0ff73
+DIFF=../fixtures/diffs/planted-10.diff SCHEMA=../d04-json-verdict/schemas/verdict.json
+DIFF_SHA=d6bd55f91d5ee411b58f9ae09753c5428c750e817d79f763e117d604ca8720ad
 SCHEMA_SHA=c26af7566343260f383163047f7590f060bfe447ff9c90835f9996ed0fefe35f
 SAME=gemini-3.8-flash-high
 MIXED=(gemini-3.8-flash-high claude-sonnet-4-6 gpt-oss-120b-medium)
@@ -78,7 +78,7 @@ read -r utc < "$OUT/utc"
 jq -s --arg run "d17-${utc//[-:]/}-$$" --argjson pid $$ --arg utc "$utc" --argjson load1 "$load1" \
   --arg agy "$have" --arg q1 "$q1" --arg q2 "$q2" '
   (map(select(.act == "a") | del(.act))) as $a | (map(select(.act == "b") | del(.act))) as $b |
-  {run_id:$run, pid:$pid, utc:$utc, load1:$load1, agy_version:$agy, planted_diff:"planted-01.diff",
+  {run_id:$run, pid:$pid, utc:$utc, load1:$load1, agy_version:$agy, planted_diff:"planted-10.diff",
    homogeneous:{models:($a|map(.model)), lanes:$a, quorum:$q1},
    heterogeneous:{models:($b|map(.model)), lanes:$b, quorum:$q2},
    planted_defect_caught:{homogeneous:($q1=="FAIL"), heterogeneous:($q2=="FAIL")}}' "$LOG"
