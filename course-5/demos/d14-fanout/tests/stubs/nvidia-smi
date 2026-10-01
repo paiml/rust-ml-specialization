@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Stub nvidia-smi: plenty of free memory, four compute processes.
+case "$*" in
+  *memory.free*) echo 24000 ;;
+  *) printf 'pid, used_gpu_memory [MiB]\n1, 3682 MiB\n2, 3682 MiB\n3, 3682 MiB\n4, 3682 MiB\n' ;;
+esac

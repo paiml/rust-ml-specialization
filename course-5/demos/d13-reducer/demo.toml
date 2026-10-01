@@ -1,0 +1,29 @@
+id = "d13-reducer"
+title = "A deterministic reducer: fan out an eval, reduce to identical bytes"
+lesson = "rfml5/2.2"
+apr = "none"
+agy = "none"
+host_class = "any"
+needs = []
+
+[[step]]
+cmd = "cargo run -q -p d13-reducer"
+
+[assert]
+items = 240
+workers = 8
+shuffles = 1000
+shuffles_identical = 1000
+serial_equals_threaded = true
+naive_divergent = "> 0"
+receipt_gate_blocks = true
+quorum_rows = 27
+quorum_one_fail_blocks = true
+reduce_sha256 = "384f99e656665992b3a79cec1e27d5fbb8910ae839aeabd27b8cf1234a38b240"
+exit = 0
+
+[record]
+target_duration_s = 240
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["items", "workers", "shuffles", "shuffles_identical", "naive_divergent", "quorum_rows", "reduce_sha256"]

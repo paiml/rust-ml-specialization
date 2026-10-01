@@ -1,0 +1,39 @@
+--- a/src/fs/tempfile.rs
++++ b/src/fs/tempfile.rs
+@@ -1,20 +1,33 @@
+ //! Scratch files for the batch export job.
+
+ use std::fs::File;
+ use std::io;
+ use std::path::PathBuf;
+
+ pub struct ScratchFile {
+     pub path: PathBuf,
+     handle: File,
+ }
+
+ impl ScratchFile {
+     pub fn create(dir: &str, name: &str) -> io::Result<Self> {
+         let path = PathBuf::from(dir).join(name);
+         let handle = File::create(&path)?;
+         Ok(ScratchFile { path, handle })
+     }
+
+     pub fn handle_mut(&mut self) -> &mut File {
+         &mut self.handle
+     }
++
++    /// Detach the OS handle from Rust's lifetime tracking so a caller that
++    /// wants to keep writing after this wrapper is dropped still can,
++    /// while the export path (`path`) stays valid for cleanup.
++    pub fn detach(self) -> PathBuf {
++        let ScratchFile { path, handle } = self;
++        std::mem::forget(handle);
++        path
++    }
++}
++
++pub fn export_and_detach(dir: &str, name: &str) -> io::Result<PathBuf> {
++    let scratch = ScratchFile::create(dir, name)?;
++    Ok(scratch.detach())
+ }

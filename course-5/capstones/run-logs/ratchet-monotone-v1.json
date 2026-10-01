@@ -1,0 +1,25 @@
+{
+  "contract": "ratchet-monotone-v1",
+  "endpoint": "POST https://play.rust-lang.org/execute",
+  "request": {
+    "backtrace": false,
+    "channel": "stable",
+    "crateType": "bin",
+    "edition": "2021",
+    "mode": "debug",
+    "tests": false
+  },
+  "response": {
+    "exitDetail": "Exited with status 0",
+    "stderr": "   Compiling playground v0.0.1 (/playground)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.53s\n     Running `target/debug/playground`\n",
+    "stdout": "contract: ratchet-monotone-v1 OK\n",
+    "success": true
+  },
+  "mint": {
+    "tool": "rmedia playground publish",
+    "gist_id": "edb7d19e0dba8b88f130a41cbd327f06",
+    "share_url": "https://play.rust-lang.org/?channel=stable&mode=debug&edition=2021&gist=edb7d19e0dba8b88f130a41cbd327f06",
+    "verified_at": "2026-09-26T14:24:34.768570670Z",
+    "run_date": "2026-09-26"
+  }
+}

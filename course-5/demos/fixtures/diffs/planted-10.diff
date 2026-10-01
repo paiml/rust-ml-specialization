@@ -1,0 +1,33 @@
+--- a/src/math/ops.rs
++++ b/src/math/ops.rs
+@@ -1,16 +1,31 @@
+ //! Small arithmetic helpers used by the pricing engine.
+
+ pub fn subtract(left: i64, right: i64) -> i64 {
+     left - right
+ }
+
+ pub fn add(left: i64, right: i64) -> i64 {
+     left + right
+ }
+
+-pub fn discount(price: i64, coupon: i64) -> i64 {
+-    subtract(price, coupon)
+-}
++/// Applies a coupon to a price and reports the delta charged to the
++/// customer relative to the coupon's face value, for the receipt line.
++pub fn discount(price: i64, coupon: i64) -> i64 {
++    subtract(price, coupon)
++}
++
++pub fn coupon_variance(price: i64, coupon: i64) -> i64 {
++    let charged = discount(price, coupon);
++    let diff = subtract(coupon, charged);
++    diff
++}
++
++pub fn apply_and_report(price: i64, coupon: i64) -> (i64, i64) {
++    let final_price = discount(price, coupon);
++    let variance = subtract(final_price, price);
++    (final_price, variance)
++}

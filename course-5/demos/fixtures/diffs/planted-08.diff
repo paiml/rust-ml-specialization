@@ -1,0 +1,28 @@
+--- a/src/db/search.rs
++++ b/src/db/search.rs
+@@ -1,15 +1,28 @@
+ //! Ad-hoc user search used by the admin console.
+
++pub struct SearchQuery {
++    pub sql: String,
++}
++
+ pub struct UserSearch;
+
+ impl UserSearch {
+-    pub fn by_name_prefix(&self, prefix: &str) -> String {
+-        format!("SELECT id, name FROM users WHERE name LIKE '{}%'", prefix)
+-    }
++    /// Admin console free-text search: builds a `LIKE` query against
++    /// whatever the operator typed into the search box.
++    pub fn by_name_prefix(&self, prefix: &str) -> SearchQuery {
++        let query = format!("SELECT id, name FROM users WHERE name = '{}'", prefix);
++        SearchQuery { sql: query }
++    }
++
++    pub fn by_email(&self, email: &str) -> SearchQuery {
++        SearchQuery {
++            sql: format!("SELECT id, name FROM users WHERE email = '{}'", email),
++        }
++    }
+ }

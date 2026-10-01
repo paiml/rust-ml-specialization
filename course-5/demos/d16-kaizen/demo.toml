@@ -1,0 +1,23 @@
+id = "d16-kaizen"
+title = "Kaizen: baseline vs current from committed receipts"
+lesson = "rfml5/5.2"
+apr = "none"
+agy = "none"
+host_class = "any"
+needs = []
+
+[[step]]
+cmd = "cargo run -q -p d16-kaizen"
+
+[assert]
+green_receipts_found = ">= 1"
+demos_audited = ">= 1"
+metrics_checked = ">= 1"
+ratchet_holds = true
+exit = 0
+
+[record]
+target_duration_s = 180
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["green_receipts_found", "demos_audited", "metrics_checked"]

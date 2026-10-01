@@ -1,0 +1,30 @@
+# Accepted kaizen baselines (ratchet-monotone-v1). Rewritten only by
+# `cargo run -p d16-kaizen -- --update`, and only when every metric held
+# or improved. See src/main.rs for the schema.
+
+[d11-refusals.green_run_count]
+direction = "higher"
+baseline = 8.0
+
+[d13-reducer.green_run_count]
+direction = "higher"
+baseline = 3.0
+
+[d13-reducer.shuffles_identical]
+direction = "higher"
+baseline = 1000.0
+
+[d16-kaizen.green_run_count]
+direction = "higher"
+baseline = 1.0
+
+# d15 wall_ms re-baselined for agy 1.2.14 (pin bump, paiml/rust-ml-specialization#7 / PR #8).
+# Old basis: 21017 ms, first Green receipt on agy 1.2.11 (bootstrapped, never committed here).
+# New accepted baseline = MEDIAN of 3 sequential Green runs on agy 1.2.14, lambda, load1 3.4-4.3:
+#   1790871887-545586546-3541881  47532 ms
+#   1790871935-372587221-3551171  41041 ms
+#   1790872015-212196828-3574678  45901 ms   <- median
+# A pin change is a new measurement basis, not a waiver; the ratchet is unchanged.
+[d15-agy-teamwork.wall_ms]
+direction = "lower"
+baseline = 45901.0

@@ -1,0 +1,39 @@
+--- a/src/stats/counter.rs
++++ b/src/stats/counter.rs
+@@ -1,15 +1,20 @@
+ //! Simple histogram-free statistics over a batch of samples.
+
+ pub struct Batch {
+     samples: Vec<i64>,
+ }
+
+ impl Batch {
+     pub fn new(samples: Vec<i64>) -> Self {
+         Batch { samples }
+     }
+
+-    pub fn positives(&self) -> Vec<i64> {
+-        let mut out = Vec::new();
+-        for s in &self.samples {
+-            if *s > 0 {
+-                out.push(*s);
+-            }
+-        }
+-        out
++    pub fn positives(&self) -> Vec<i64> {
++        self.samples.iter().copied().filter(|s| *s > 0).collect()
++    }
++
++    /// Count of samples strictly above `threshold`, without allocating.
++    pub fn count_above(&self, threshold: i64) -> usize {
++        self.samples.iter().filter(|s| **s > threshold).count()
++    }
++
++    pub fn mean(&self) -> Option<f64> {
++        if self.samples.is_empty() {
++            return None;
++        }
++        let sum: i64 = self.samples.iter().sum();
++        Some(sum as f64 / self.samples.len() as f64)
+     }
+ }

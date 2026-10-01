@@ -1,0 +1,11 @@
+[package]
+name = "d01-serve-hello"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "D01: resident apr serve, health, one streamed completion (lesson 3.1)"
+
+[dependencies]
+demo-kit = { path = "../demo-kit" }
+serde_json.workspace = true

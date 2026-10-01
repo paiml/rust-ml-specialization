@@ -1,0 +1,34 @@
+id = "d04-json-verdict"
+title = "Structured review verdicts from a local Qwen 3.5 4B (Plan B: refused at the pin)"
+lesson = "rfml5/3.2"
+apr = "=0.69.3"
+agy = "none"
+host_class = "gx10-cuda"
+needs = ["apr serve run", "--json-schema"]
+
+# The host declares this path as a symlink to its local copy of the pinned
+# weights (see d04-json-verdict/.gitignore) — never committed (H-11).
+model = { name = "Qwen3.5-4B-Q4_K_M", sha256 = "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4", path = "models/Qwen3.5-4B-Q4_K_M.gguf" }
+
+# Digest-pinned copy of schemas/verdict.json: the client validates against
+# THIS pin, never against whatever the server happens to have on disk.
+schema_copy_sha256 = "c26af7566343260f383163047f7590f060bfe447ff9c90835f9996ed0fefe35f"
+
+[[step]]
+cmd = "apr serve run --json-schema schemas/verdict.json models/Qwen3.5-4B-Q4_K_M.gguf"
+
+[assert]
+# Never checked at this pin: preflight's Refused(--json-schema) makes the
+# harness skip [assert] entirely (MEGA-001 §5.4 / xtask verify is static).
+# Kept non-empty so a demo that could someday run this for real has a floor
+# to raise: parse_rate must reach 1.0 and the schema copy must still match
+# its pinned digest.
+exit = 0
+parse_rate = "== 1.0"
+schema_copy_matches = true
+
+[record]
+target_duration_s = 90
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = []

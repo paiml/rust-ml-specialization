@@ -1,0 +1,33 @@
+--- a/src/net/retry.rs
++++ b/src/net/retry.rs
+@@ -1,15 +1,29 @@
+ //! Retry policy for transient network failures.
+
++use std::time::Duration;
++
+ pub struct RetryPolicy {
+     pub max_retries: u32,
++    pub base_delay_ms: u64,
+ }
+
+ impl RetryPolicy {
+     pub fn new(max_retries: u32) -> Self {
+-        RetryPolicy { max_retries }
++        RetryPolicy {
++            max_retries,
++            base_delay_ms: 100,
++        }
+     }
+
+     pub fn should_retry(&self, attempt: u32) -> bool {
+         attempt < self.max_retries
+     }
++
++    /// Exponential backoff with a cap, computed with checked arithmetic so
++    /// a large attempt count saturates instead of overflowing.
++    pub fn backoff(&self, attempt: u32) -> Duration {
++        let factor = 1u64.checked_shl(attempt).unwrap_or(u64::MAX);
++        let ms = self.base_delay_ms.saturating_mul(factor).min(30_000);
++        Duration::from_millis(ms)
++    }
+ }

@@ -1,0 +1,50 @@
+--- a/src/http/request.rs
++++ b/src/http/request.rs
+@@ -1,20 +1,38 @@
+ //! A minimal builder for outgoing HTTP requests.
+
++use std::collections::BTreeMap;
++
+ pub struct Request {
+     pub method: String,
+     pub url: String,
++    pub headers: BTreeMap<String, String>,
++    pub body: Option<Vec<u8>>,
+ }
+
+ pub struct RequestBuilder {
+     method: String,
+     url: String,
++    headers: BTreeMap<String, String>,
++    body: Option<Vec<u8>>,
+ }
+
+ impl RequestBuilder {
+     pub fn new(method: &str, url: &str) -> Self {
+         RequestBuilder {
+             method: method.to_string(),
+             url: url.to_string(),
++            headers: BTreeMap::new(),
++            body: None,
+         }
+     }
+
++    pub fn header(mut self, key: &str, value: &str) -> Self {
++        self.headers.insert(key.to_string(), value.to_string());
++        self
++    }
++
++    pub fn body(mut self, bytes: Vec<u8>) -> Self {
++        self.body = Some(bytes);
++        self
++    }
++
+     pub fn build(self) -> Request {
+         Request {
+             method: self.method,
+             url: self.url,
++            headers: self.headers,
++            body: self.body,
+         }
+     }
+ }

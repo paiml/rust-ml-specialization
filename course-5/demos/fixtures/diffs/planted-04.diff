@@ -1,0 +1,36 @@
+--- a/src/net/retry.rs
++++ b/src/net/retry.rs
+@@ -1,13 +1,29 @@
+ //! Retry policy for transient network failures.
+
++use std::time::Duration;
++
+ pub struct RetryPolicy {
+     pub max_retries: u32,
+ }
+
+ impl RetryPolicy {
+     pub fn new(max_retries: u32) -> Self {
+         RetryPolicy { max_retries }
+     }
+
+-    pub fn should_retry(&self, attempt: u32) -> bool {
+-        attempt < self.max_retries
+-    }
++    /// Whether the caller should attempt again after this failure.
++    pub fn should_retry(&self, attempt: u32) -> bool {
++        attempt < self.max_retries
++    }
++
++    /// Stop dispatching once we have used up the retry budget.
++    pub fn exhausted(&self, attempt: u32) -> bool {
++        if attempt > self.max_retries {
++            return true;
++        }
++        false
++    }
++
++    pub fn backoff(&self, attempt: u32) -> Duration {
++        Duration::from_millis(100 * (attempt as u64 + 1))
++    }
+ }
