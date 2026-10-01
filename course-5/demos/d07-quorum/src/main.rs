@@ -84,7 +84,10 @@ fn main() {
         .collect();
     println!("quorum: {overall} — blocked by: {blocked_by:?}");
 
-    let lanes_run = live.len() as u32; // apr never ran; it is not counted here
+    // A lane that came back NotRun did not review anything: it must not count,
+    // so a dead agy lane turns the lanes_run assertion (and the receipt) Red.
+    // apr never ran either; it is not counted here.
+    let lanes_run = live.iter().filter(|(_, l)| *l != Lane::NotRun).count() as u32;
     let measured: BTreeMap<String, serde_json::Value> = [
         ("lanes_run", json!(lanes_run)),
         ("quorum", json!(overall.to_string())),
