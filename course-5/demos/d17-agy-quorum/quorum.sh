@@ -23,8 +23,8 @@ load1=$(cut -d' ' -f1 /proc/loadavg)
 awk -v l="$load1" -v n="$(nproc)" 'BEGIN{exit !(l < n)}' || die "load1 $load1 >= $(nproc) cores"
 echo "preflight: OK agy=$have load1=$load1"
 
-PROMPT="You are a code reviewer. Do not run commands or tools; answer only from the diff. Verdict FAIL if the diff has a defect, with one finding per defect. Diff:
-$(cat "$DIFF")"
+PROMPT="$(cat prompt.txt)
+$(cat "$DIFF")"   # same prompt text + schema for every lane
 OUT=$(mktemp -d "${TMPDIR:-/tmp}/d17.XXXXXX") || die "mktemp failed"; trap 'rm -rf "${OUT:?}"' EXIT
 LOG=$OUT/receipt.log   # append-only: one JSON line per lane, one for the run
 date -u +%FT%TZ | tee -a "$OUT/utc" > /dev/null
@@ -37,11 +37,7 @@ lane() { # lane <act> <idx> <model>: raw json -> $OUT/<act><idx>.json; start/end
   date +%s%N | tee -a "$OUT/$1$2.t" > /dev/null
 }
 # validated lane -> verdict; anything else (non-zero exit, timeout, missing, off-schema) is NotRun
-VALID='(.structured_output // empty) | select(
-  (keys | sort) == ["findings","verdict"] and (.verdict | IN("PASS","FAIL")) and
-  (.findings | type == "array" and all(.[]; (keys | sort) == ["class","line","why"] and
-    (.line | type == "number" and floor == . and . >= 1) and (.class | type == "string" and length > 0) and
-    (.why | type == "string" and length > 0))))'
+VALID=$(cat valid.jq)
 judge() { # judge <act> <idx> <model>: appends the lane's JSON line to the receipt log
   local rc v=NotRun n=0 ms
   read -r rc < "$OUT/$1$2.rc" 2>/dev/null || rc=missing
