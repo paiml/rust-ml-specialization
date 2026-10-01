@@ -44,9 +44,11 @@ fn review_one(schema_path: &Path, fixtures_dir: &Path, file: &ManifestFile) -> (
     let claude = lanes::run_claude_lane(&diff_text);
     let slowest = agy.wall.as_secs_f64().max(claude.wall.as_secs_f64());
     println!(
-        "  {}: agy={} in {:.1}s ({}) | claude={} in {:.1}s ({})",
+        "  {} (marker {:?}): agy={} {:?} in {:.1}s ({}) | claude={} {:?} in {:.1}s ({})",
         file.path,
+        file.marker_line,
         agy.lane,
+        agy.finding_lines,
         agy.wall.as_secs_f64(),
         if agy.detail.is_empty() {
             "ok"
@@ -54,6 +56,7 @@ fn review_one(schema_path: &Path, fixtures_dir: &Path, file: &ManifestFile) -> (
             agy.detail.as_str()
         },
         claude.lane,
+        claude.finding_lines,
         claude.wall.as_secs_f64(),
         if claude.detail.is_empty() {
             "ok"
