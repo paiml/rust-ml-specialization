@@ -29,7 +29,9 @@ fn main() {
     let mut h = Harness::load(env!("CARGO_MANIFEST_DIR"));
     let mut measured: BTreeMap<String, Value> = BTreeMap::new();
     if h.not_run().is_empty() {
+        // apr >= 0.69 refuses any path containing ".." (InferenceFailed), so hand it the resolved path.
         let model = h.dir.join(&h.manifest.model.as_ref().expect("model").path);
+        let model = model.canonicalize().unwrap_or(model);
         let model = model.to_string_lossy().into_owned();
 
         println!("-- cold: {RUNS} fresh processes --");

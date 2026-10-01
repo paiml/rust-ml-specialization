@@ -2,7 +2,7 @@ id = "d15-agy-teamwork"
 title = "agy teamwork: one minter, one reducer, workers report to an inbox"
 lesson = "rfml5/4.1"
 apr = "none"
-agy = "=1.2.11"
+agy = "=1.2.14"
 host_class = "agy-host"
 needs = ["agy"]
 fixtures = { dir = "fixtures", sha256 = "0fa32d705245d081f6c76514a0b91ffeb302630dc152504e6920e28b9d53695e" }
