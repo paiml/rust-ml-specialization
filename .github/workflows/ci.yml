@@ -37,6 +37,24 @@ jobs:
       - name: Toolchain
         run: rustup toolchain install stable --profile minimal -c clippy,rustfmt && rustup default stable
 
+      # Pinned: verify and the D14 falsifier shell out to both. A missing tool fails, never skips.
+      - name: Install shellcheck 0.10.0
+        run: |
+          curl -sfL https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz | tar -xJ
+          sudo install shellcheck-v0.10.0/shellcheck /usr/local/bin/shellcheck
+          shellcheck --version
+
+      - name: Cache bashrs
+        id: bashrs-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/bashrs
+          key: bashrs-7.4.1
+
+      - name: Install bashrs 7.4.1
+        if: steps.bashrs-cache.outputs.cache-hit != 'true'
+        run: cargo install bashrs --version 7.4.1 --locked
+
       - name: Format
         run: cargo fmt --all -- --check
 
@@ -48,6 +66,28 @@ jobs:
 
       - name: Verify every demo
         run: cargo run -q -p xtask -- verify
+
+  # Not in `gate` yet: `pmat comply` fails today on repo-level checks (branch
+  # protection, deny.toml, TDG grade) that need a ruling. It runs and reports.
+  pmat-comply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: Cache pmat
+        id: pmat-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/pmat
+          key: pmat-3.42.0
+      - name: Install pmat 3.42.0
+        if: steps.pmat-cache.outputs.cache-hit != 'true'
+        run: cargo install pmat --version 3.42.0 --locked
+      - name: pmat comply
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pmat comply check
 
   # The org "Green Main" ruleset requires one status named `gate`. It passes
   # only when every job above passed; a skipped or cancelled job is a failure.
