@@ -4,6 +4,7 @@
 
 mod card;
 mod lint;
+mod shell;
 
 use demo_kit::{pin, DemoManifest};
 use std::path::{Path, PathBuf};
@@ -86,6 +87,15 @@ pub fn verify_demo(dir: &Path) -> Vec<String> {
             Ok(src) => findings.extend(lint::lint_contract(&src).err().unwrap_or_default()),
             Err(e) => findings.push(format!("src/main.rs: {e}")),
         }
+    }
+    // every bash script in the demo goes through bashrs + shellcheck
+    let mut scripts: Vec<PathBuf> = std::fs::read_dir(dir)
+        .map(|rd| rd.filter_map(|e| e.ok().map(|e| e.path())).collect())
+        .unwrap_or_default();
+    scripts.retain(|p| p.extension().is_some_and(|e| e == "sh"));
+    scripts.sort();
+    for script in scripts {
+        findings.extend(shell::lint_script(&script));
     }
     findings
 }

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Stub curl: /health is up; a completion echoes the prompt so every port agrees,
+# unless a fault is planted by env (the falsifier arms):
+#   STUB_BAD_PORT=p     port p answers with different text   (breaks reduce-deterministic-v1)
+#   STUB_DROP_PROMPT=s  (fan-out ports only) a prompt containing s gets no answer (drops an id)
+#   STUB_DUP_PROMPT=s   (fan-out ports only) a prompt containing s is answered twice (duplicates an id)
+url=""
+for a in "$@"; do [[ $a == localhost:* ]] && url=$a; done
+port=${url#localhost:}; port=${port%%/*}
+[[ $url == */health ]] && exit 0
+prompt=$(jq -r '.messages[0].content')
+sleep 0.05
+[[ $port != 8080 && -n ${STUB_DROP_PROMPT:-} && $prompt == *"$STUB_DROP_PROMPT"* ]] && exit 22
+text="stub answer: $prompt"
+[[ $port == "${STUB_BAD_PORT:-none}" ]] && text="$text (drift)"
+reply=$(jq -nc --arg t "$text" '{choices:[{message:{content:$t}}]}')
+echo "$reply"
+[[ $port != 8080 && -n ${STUB_DUP_PROMPT:-} && $prompt == *"$STUB_DUP_PROMPT"* ]] && echo "$reply"
+exit 0
