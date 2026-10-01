@@ -1,0 +1,22 @@
+id = "d14-fanout"
+title = "Fan-out: one resident apr server, then four, same 48 prompts, same bytes"
+lesson = "rfml5/1.2.1"
+apr = "=0.69.3"
+agy = "none"
+model = { name = "Qwen3.5-4B-Q4_K_M", sha256 = "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4", path = "../models/Qwen3.5-4B-Q4_K_M.gguf" }
+host_class = "lambda"
+needs = ["apr serve run"]
+
+[[step]]
+cmd = "bash fanout.sh"
+
+[assert]
+prompts = 48
+lanes = 4
+exit = 0
+
+[record]
+target_duration_s = 300
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["t1_ms", "t4_ms", "speedup", "serial_fraction", "merge_ms", "sha256", "load1_start", "load1_end"]

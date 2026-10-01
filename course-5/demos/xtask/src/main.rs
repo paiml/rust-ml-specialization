@@ -71,9 +71,21 @@ pub fn verify_demo(dir: &Path) -> Vec<String> {
             manifest.record.target_duration_s
         ));
     }
-    match std::fs::read_to_string(dir.join("src/main.rs")) {
-        Ok(src) => findings.extend(lint::lint_contract(&src).err().unwrap_or_default()),
-        Err(e) => findings.push(format!("src/main.rs: {e}")),
+    // A bash demo has no src/main.rs; its script is named by a `bash X.sh` step.
+    let script = manifest
+        .step
+        .iter()
+        .find_map(|s| s.cmd.strip_prefix("bash ").map(str::trim));
+    if let Some(script) = script.filter(|_| !dir.join("src/main.rs").is_file()) {
+        match std::fs::read_to_string(dir.join(script)) {
+            Ok(src) => findings.extend(lint::lint_shell_contract(&src).err().unwrap_or_default()),
+            Err(e) => findings.push(format!("{script}: {e}")),
+        }
+    } else {
+        match std::fs::read_to_string(dir.join("src/main.rs")) {
+            Ok(src) => findings.extend(lint::lint_contract(&src).err().unwrap_or_default()),
+            Err(e) => findings.push(format!("src/main.rs: {e}")),
+        }
     }
     findings
 }
