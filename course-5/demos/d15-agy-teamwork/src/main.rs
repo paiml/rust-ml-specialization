@@ -153,7 +153,7 @@ fn run_teamwork() -> BTreeMap<String, Value> {
 
     println!(
         "mechanism: 3 parallel `agy -p` calls, one per minted ticket \
-         (agy 1.2.11 has no scriptable /teamwork verb — see the docstring \
+         (agy 1.2.14 has no scriptable /teamwork verb — see the docstring \
          above for what typing it literally actually does)"
     );
 
