@@ -71,8 +71,14 @@ pub fn verify_demo(dir: &Path) -> Vec<String> {
             manifest.record.target_duration_s
         ));
     }
+    // Bash demos (no Rust harness) ship `quorum.sh` and are linted by its bash twin.
+    let sh = dir.join("quorum.sh");
     match std::fs::read_to_string(dir.join("src/main.rs")) {
         Ok(src) => findings.extend(lint::lint_contract(&src).err().unwrap_or_default()),
+        Err(_) if sh.exists() => match std::fs::read_to_string(&sh) {
+            Ok(src) => findings.extend(lint::lint_contract_sh(&src).err().unwrap_or_default()),
+            Err(e) => findings.push(format!("quorum.sh: {e}")),
+        },
         Err(e) => findings.push(format!("src/main.rs: {e}")),
     }
     findings

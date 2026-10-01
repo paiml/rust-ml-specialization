@@ -77,6 +77,45 @@ fn main_body(src: &str) -> Option<&str> {
     None
 }
 
+/// Bash twin of [`lint_contract`] for demos that ship `quorum.sh`-style scripts instead of
+/// `src/main.rs`: a leading `# Provable contract:` comment, at least one
+/// `[[ … ]] || { … exit 1; }` assertion, and an `echo "contract: … OK"` after the last one.
+pub fn lint_contract_sh(src: &str) -> Result<(), Vec<String>> {
+    let mut findings = Vec::new();
+    let named = src.lines().take_while(|l| l.starts_with('#')).any(|l| {
+        l.trim_start_matches('#')
+            .trim()
+            .strip_prefix("Provable contract:")
+            .is_some_and(|rest| !rest.trim().is_empty())
+    });
+    if !named {
+        findings.push("demo-contract-docstring-v1: no leading `#` comment with a non-empty `Provable contract:` line".into());
+    }
+    let last_assert = src
+        .lines()
+        .enumerate()
+        .filter(|(_, l)| l.contains("[[") && l.contains("|| {") && l.contains("exit 1"))
+        .map(|(i, _)| i)
+        .max();
+    match last_assert {
+        None => findings.push("script asserts nothing (`[[ … ]] || { …; exit 1; }`)".into()),
+        Some(n) => {
+            if !src
+                .lines()
+                .skip(n + 1)
+                .any(|l| l.contains("echo \"contract: ") && l.contains(" OK"))
+            {
+                findings.push("no `echo \"contract: … OK\"` after the last assertion".into());
+            }
+        }
+    }
+    if findings.is_empty() {
+        Ok(())
+    } else {
+        Err(findings)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -116,5 +155,19 @@ mod tests {
     #[test]
     fn empty_file_is_refused() {
         assert!(lint_contract("").is_err());
+    }
+
+    const SH: &str = "#!/usr/bin/env bash\n# Provable contract: x-v1 + y-v1\n[[ 1 == 1 ]] || { echo \"contract: FAIL x\"; exit 1; }\necho \"contract: x-v1 + y-v1 OK\"\n";
+
+    #[test]
+    fn bash_demo_with_contract_passes() {
+        assert!(lint_contract_sh(SH).is_ok());
+    }
+
+    #[test]
+    fn bash_demo_without_assertion_or_ok_line_is_refused() {
+        assert!(lint_contract_sh(&SH.replace("[[ 1 == 1 ]]", "true")).is_err());
+        assert!(lint_contract_sh(&SH.replace("contract: x-v1 + y-v1 OK", "done")).is_err());
+        assert!(lint_contract_sh(&SH.replace("Provable contract:", "Note:")).is_err());
     }
 }
