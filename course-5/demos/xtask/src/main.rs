@@ -259,6 +259,7 @@ mod d17_falsifier {
             .env("STUB_MODES", modes)
             .env("LANE_TIMEOUT_S", "1")
             .env("LANE_GRACE_S", "0")
+            .env("LOAD_MAX", "1000000")
             .output()
             .unwrap();
         std::fs::remove_dir_all(&bin).ok();

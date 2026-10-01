@@ -20,7 +20,8 @@ have=$(agy --version 2>/dev/null) || die "agy not runnable"
 [[ $(sha256sum < "$DIFF" | cut -d' ' -f1) == "$DIFF_SHA" ]] || die "fixture sha256 drift"
 [[ $(sha256sum < "$SCHEMA" | cut -d' ' -f1) == "$SCHEMA_SHA" ]] || die "schema sha256 drift"
 load1=$(cut -d' ' -f1 /proc/loadavg)
-awk -v l="$load1" -v n="$(nproc)" 'BEGIN{exit !(l < n)}' || die "load1 $load1 >= $(nproc) cores"
+max=${LOAD_MAX:-$(nproc)}   # default: one runnable task per core; the falsifier raises it
+awk -v l="$load1" -v n="$max" 'BEGIN{exit !(l < n)}' || die "load1 $load1 >= $max"
 echo "preflight: OK agy=$have load1=$load1"
 
 PROMPT="$(cat prompt.txt)
