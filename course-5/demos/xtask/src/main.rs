@@ -220,3 +220,62 @@ mod tests {
             .any(|l| l.contains("target_duration_s")));
     }
 }
+
+/// Falsifier for D17's reduction rules: `quorum.sh` runs against a stub `agy` on PATH
+/// (bash fixture, no network) and each arm must produce the stated quorum verdicts.
+#[cfg(test)]
+mod d17_falsifier {
+    use std::process::Command;
+
+    /// (stub modes, homogeneous quorum, heterogeneous quorum)
+    const ARMS: &[(&str, &str, &str)] = &[
+        ("", "PASS", "PASS"),
+        ("claude-sonnet-4-6=fail", "PASS", "FAIL"),
+        ("gemini-3.8-flash-high=fail", "FAIL", "FAIL"),
+        ("gpt-oss-120b-medium=hang", "PASS", "NotRun"),
+        ("gpt-oss-120b-medium=garbage", "PASS", "NotRun"),
+        ("gpt-oss-120b-medium=vanish", "PASS", "NotRun"),
+        ("gemini-3.8-flash-high=hang", "NotRun", "NotRun"),
+        (
+            "claude-sonnet-4-6=fail,gpt-oss-120b-medium=hang",
+            "PASS",
+            "FAIL",
+        ),
+    ];
+
+    fn run(modes: &str) -> String {
+        let demo = crate::demos_root().join("d17-agy-quorum");
+        let bin = std::env::temp_dir().join(format!("d17-stub-{}", std::process::id()));
+        std::fs::create_dir_all(&bin).unwrap();
+        std::fs::copy(demo.join("fixtures/stub-agy.sh"), bin.join("agy")).unwrap();
+        let path = format!(
+            "{}:{}",
+            bin.display(),
+            std::env::var("PATH").unwrap_or_default()
+        );
+        let out = Command::new("bash")
+            .arg(demo.join("quorum.sh"))
+            .env("PATH", path)
+            .env("STUB_MODES", modes)
+            .env("LANE_TIMEOUT_S", "1")
+            .env("LANE_GRACE_S", "0")
+            .env("LOAD_MAX", "1000000")
+            .output()
+            .unwrap();
+        std::fs::remove_dir_all(&bin).ok();
+        String::from_utf8_lossy(&out.stdout).into_owned()
+    }
+
+    #[test]
+    fn reduction_rules_hold_against_a_stub_agy() {
+        for (modes, homo, hetero) in ARMS {
+            let out = run(modes);
+            assert!(
+                out.contains("contract: quorum-one-fail-blocks-v1 + notrun-never-green-v1 OK"),
+                "[{modes}] {out}"
+            );
+            let want = format!("quorum: homogeneous={homo} heterogeneous={hetero}");
+            assert!(out.contains(&want), "[{modes}] want `{want}`, got:\n{out}");
+        }
+    }
+}

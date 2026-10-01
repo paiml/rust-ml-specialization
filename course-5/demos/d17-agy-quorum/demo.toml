@@ -1,0 +1,22 @@
+id = "d17-agy-quorum"
+title = "One model three times is one reviewer: homogeneous vs heterogeneous agy quorum, bash + jq only"
+lesson = "rfml5/4.2.1"
+apr = "none"
+agy = "=1.2.14"
+host_class = "any"
+needs = ["agy", "jq"]
+fixtures = { dir = "../fixtures/diffs", sha256 = "bc1eae7eab61388cf33e6b6175729cac3753374e33e851f07169f561eb8f80ed" }
+
+[[step]]
+cmd = "bash quorum.sh"
+
+[assert]
+contract = "quorum-one-fail-blocks-v1 + notrun-never-green-v1"
+lanes_run = 6
+exit = 0
+
+[record]
+target_duration_s = 120
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["homogeneous.quorum", "heterogeneous.quorum", "planted_defect_caught", "lanes[].verdict", "lanes[].wall_ms"]
