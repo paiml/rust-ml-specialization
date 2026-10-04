@@ -13,7 +13,7 @@
 //! outside this repo), and optionally `RFML5_BEATS` (beat times; unset means
 //! no pacing). Exit codes: 0 Green, 1 Red, 2 NotRun.
 
-use d19_workflow_ontology::matrix::{Kill, KillRow, Survive, Table};
+use d19_workflow_ontology::matrix::{Kill, KillRow, Survive, SurviveRow, Table};
 use d19_workflow_ontology::record::{Record, DEMO};
 use d19_workflow_ontology::screen::Screen;
 use d19_workflow_ontology::{patch, steps};
@@ -278,10 +278,28 @@ impl Demo<'_> {
         Ok(())
     }
 
+    /// Judge the golden record with `ops` applied. A patch that does not
+    /// apply, or changes nothing, is a broken row: Red, never NotRun.
+    fn mutant(
+        &mut self,
+        inp: &Inputs,
+        id: &str,
+        ops: &Value,
+    ) -> Result<Option<ShapesOutcome>, String> {
+        match patch::patched(&inp.golden_json, ops) {
+            Ok(doc) => self.judge(&inp.d18_spec, &to_bytes(&doc)?).map(Some),
+            Err(e) => {
+                self.check(false, &format!("{id}: patch {e}"));
+                Ok(None)
+            }
+        }
+    }
+
     fn kill_row(&mut self, inp: &Inputs, row: &KillRow) -> Result<(), String> {
         let t = &inp.table;
-        let doc = patch::patched(&inp.golden_json, &row.patch)?;
-        let o = self.judge(&inp.d18_spec, &to_bytes(&doc)?)?;
+        let Some(o) = self.mutant(inp, &row.id, &row.patch)? else {
+            return Ok(());
+        };
         let k = row.judge(&o, &t.node, &t.ns());
         self.s.line(&format!(
             "  {}  {:<16} {:<34} {}",
@@ -294,6 +312,24 @@ impl Demo<'_> {
             self.m.killed.push(row.id.clone());
         }
         self.check(k == Kill::Killed, &format!("{} killed", row.id));
+        Ok(())
+    }
+
+    fn survive_row(&mut self, inp: &Inputs, row: &SurviveRow) -> Result<(), String> {
+        let Some(o) = self.mutant(inp, &row.id, &row.patch)? else {
+            return Ok(());
+        };
+        let v = row.judge(&o);
+        self.s.line(&format!(
+            "  {}  {:<16} {}",
+            row.id,
+            v.to_string(),
+            row.short_why()
+        ));
+        if v == Survive::Survived {
+            self.m.survived.push(row.id.clone());
+        }
+        self.check(v == Survive::Survived, &format!("{} survives", row.id));
         Ok(())
     }
 
@@ -342,19 +378,7 @@ impl Demo<'_> {
             } else if i == half {
                 self.s.cue("D19-B19");
             }
-            let doc = patch::patched(&inp.golden_json, &row.patch)?;
-            let o = self.judge(&inp.d18_spec, &to_bytes(&doc)?)?;
-            let v = row.judge(&o);
-            self.s.line(&format!(
-                "  {}  {:<16} {}",
-                row.id,
-                v.to_string(),
-                row.short_why()
-            ));
-            if v == Survive::Survived {
-                self.m.survived.push(row.id.clone());
-            }
-            self.check(v == Survive::Survived, &format!("{} survives", row.id));
+            self.survive_row(inp, row)?;
         }
         self.s.line(&format!(
             "  survived {}/{}",
