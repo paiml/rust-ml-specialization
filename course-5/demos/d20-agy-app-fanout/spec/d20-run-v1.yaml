@@ -92,7 +92,7 @@ equations:
     domain: "every CDP method and key the driver sent; DevTools targets counted from Target.targetCreated events, not sampled"
   operator_untouched:
     formula: "profile(run) ≠ profile(operator) ∧ listing(operator, before) = listing(operator, after)"
-    domain: "the app's --user-data-dir, extensions dir, HOME and XDG_* all inside the course's one dedicated demo profile, which lives outside the repository and is reused across runs (the operator signs in to it once; the demo never reads, copies or receives a credential); the operator's app, gemini and XDG config, data, cache and state directories listed by path, inode, size, mtime and ctime before and after"
+    domain: "the app's --user-data-dir, extensions dir, HOME and XDG_* all inside the course's one dedicated demo profile, which lives outside the repository and is reused across runs (the operator signs in to it once; the demo never reads, copies or receives a credential); the operator's app, gemini and XDG config, data, cache and state directories listed by path, inode, size, mtime and ctime before and after, the two listings equal, and a canary beside them unchanged"
   concurrent:
     formula: "∀ N ∈ {1,2,3}: started(agent_N) ≤ all_running_seen ≤ done(agent_N)"
     domain: "ms since the fan-out started, one monotonic clock. all_running_seen is the first moment one accessibility-tree snapshot reports all three agents running at once; started(N) is the moment agent N was first reported running and done(N) the moment it was first reported done. The shapes order the three moments per agent; the program asserts that all_running_seen comes from ONE snapshot holding three running states, and all_running_seen > 0"
