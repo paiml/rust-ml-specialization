@@ -6,7 +6,7 @@ status: active
 # rfml5 new demos D18–D21: two agents on one server, the workflow as an ontology, and agent fan-out in the Antigravity app
 
 **Ticket:** PMAT-020 (#20), epic #19. **Branch:** `PMAT-020-rfml5-new-demos`.
-**Status:** spec, revised after quorum rounds 1 to 4n (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
+**Status:** spec, revised after quorum rounds 1 to 4p (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
 
 ## 0. Origin
 
@@ -27,7 +27,7 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
 | Id | Proposed lesson | One-line claim |
 |---|---|---|
 | D18 `d18-two-agents-one-server` | rfml5/3.3 [U] | Two agents, a writer and a checker, share **one** resident `apr serve`. The checker decides, every output file has one writer, and the schedule does not change the bytes. |
-| D19 `d19-workflow-ontology` | rfml5/3.4 [U] | D18's workflow, written as a pv ontology plus SHACL shapes. pv kills 17 named mutants of a good run, each for exactly the constraint it breaks, and stays silent on the good run itself. Six documented mutants survive: they are what the shapes cannot see, and each is owned by a Rust assert. |
+| D19 `d19-workflow-ontology` | rfml5/3.4 [U] | D18's workflow, written as a pv ontology plus SHACL shapes. pv kills 18 named mutants of a good run, each for exactly the constraint it breaks, and stays silent on the good run itself. Six documented mutants survive: they are what the shapes cannot see, and each is owned by a Rust assert. |
 | D20 `d20-agy-app-fanout` | rfml5/4.3 [U] | A Rust driver opens the Antigravity desktop app on its own dedicated demo profile and fans out three agents that run at the same time, watchable in the recording. Every CDP method it sends is from a fixed list of twenty, none of which runs JavaScript. It sends only Enter, Escape and Tab, and the record carries the evidence that the app itself was driven. |
 | D21 `d21-agy-app-fanin` | rfml5/4.4 [U] | Fan-in with stop-the-line. One agent goes red, the driver stops the other two after the red and never before, refuses to merge, and the reduction is the same in all six arrival orders. |
 
@@ -56,12 +56,12 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
   2. judges the golden record (Pass, with the positive control fired);
   3. judges the planted record (exactly the expected five findings);
   4. runs the 23-row mutant table in `fixtures/mutants.json`. Each row is an RFC 6902 JSON Patch of the golden record:
-     - 17 **kill** rows must each be rejected *purely*: exit 1, the exact finding count, every finding naming the intended focus node, shape and SHACL component, and the findings naming exactly the row's `properties`;
+     - 18 **kill** rows must each be rejected *purely*: exit 1, the exact finding count, every finding naming the intended focus node, shape and SHACL component, and the findings naming exactly the row's `properties`;
      - 6 **survive** rows must each pass. Each is a defect the shapes cannot see, and the row names the Rust assert that catches it;
   5. shows the A-box is tamper-evident through `pv extract spec --check`;
   6. shows the engine passes its own W3C conformance cases (19/19).
 - **What it claims** (`spec/d19-run-v1.yaml`):
-  - `every_mutant_killed`: all 17 kill rows are rejected purely.
+  - `every_mutant_killed`: all 18 kill rows are rejected purely.
   - `survivors_documented`: all 6 survive rows pass, so the list of what the shapes cannot see is current.
   - `components_covered`: the kills cover all seven components d18-run-v1 uses: `in`, `datatype`, `pattern`, `lessThanOrEquals`, `minCount`, `maxCount` and `closed`.
   - `golden_silent`: the golden record raises nothing.
@@ -149,7 +149,7 @@ Each fact was measured on the build named. Anything not in this list is **[U]** 
   - D21 carries the identical list.
 - **M7: D19's mutant matrix**, run by `xtask/proofs/verify-mutants.sh` against D18's contract.
   - The identity (the unpatched golden record) passes: exit 0, Pass, no findings.
-  - **17/17 kill rows are killed purely.** Each exits 1 with the exact finding count, the findings name exactly the row's `properties`, and every finding starts ``<node><focus> violates shape `<target>` (<component>)``. A row that also trips a second constraint, or trips the right one on the wrong node, is reported as impure and fails. And the sorted findings must equal the row's `messages` byte for byte: the right shape on a different value, or a changed message format, is reported as `WRONG-MESSAGE` and fails.
+  - **18/18 kill rows are killed purely.** Each exits 1 with the exact finding count, the findings name exactly the row's `properties`, and every finding starts ``<node><focus> violates shape `<target>` (<component>)``. A row that also trips a second constraint, or trips the right one on the wrong node, is reported as impure and fails. And the sorted findings must equal the row's `messages` byte for byte: the right shape on a different value, or a changed message format, is reported as `WRONG-MESSAGE` and fails.
     - m04 and m06 raise two findings each and m05 four, by design and all of one component. Each patches every member of its pairs (both start ticks; all four of `q2`'s sequential times, writer and checker, start and end; both digests) to strings, so every `lessThanOrEquals` among them still holds as a string comparison and only `datatype` or `pattern` fires.
     - A `datatype` finding names no property, so m04's and m05's `properties` are `-`, one per finding: those rows are held to focus node, shape, component and count.
     - Every component is killed on the run node, and every component except `pattern` (which the item shape does not use) is also killed on an item node.
@@ -161,7 +161,8 @@ Each fact was measured on the build named. Anything not in this list is **[U]** 
     - s05, `writer_files` lists one path twice: an equivalent mutant, since RDF values are a set. Each sink opens its file with `create_new`, so a second open of one path is an error.
     - s06, a pipelined schedule that never overlapped: each writer starts only after the previous item's checker ended, so it is a sequential run under the pipelined label, and every per-item chain is still ordered. It is caught by `pipelined_overlaps`, stated once in §5.1.
     - m17 is the kill row behind the round-2 finding that a JSON key spelled `rdf:type` might pass `ignoredProperties: [rdf:type]`: it does not. `closed` rejects it on the run node, naming `rdf:type`.
-  - Result: **killed and named 17/17, survived 6/6.**
+    - m18 is the kill row behind FALSIFY-D18-005: a writer that also wrote `out/verdicts.json` is refused by `sh:in` on `writer_files`, naming that value.
+  - Result: **killed and named 18/18, survived 6/6.**
 - **M8: relations only between named properties of one node.** pv's `lessThanOrEquals` compares two properties of the same focus node, and pv has no arithmetic. So every timing or identity claim here is written as a relation between two *named* properties of one node: `q1..q4` in D18, `agent_N_*` in D20, `stop_agent_N_*` in D21. A repeated path carrying a second `lessThanOrEquals` is checked independently; this was measured on D21's `red_seen_ms`, which is bounded by both stops.
 
 The twenty CDP methods (ALLOW), exact match, anchored:
@@ -186,7 +187,7 @@ No `Runtime.*`, no `Debugger.*`, no `Page.navigate`, no `Page.addScriptToEvaluat
 | the golden run's `plant_violations` (pv's own positive control); `focus_nodes_n`, `shapes_n` and this count are asserted by `A_1` | 25 | 17 | 28 | 25 |
 | `fixtures/receipt.planted.json` is rejected with exit 1 | 5 findings | 5 findings | 10 findings | 14 findings |
 | `fixtures/receipt.planted.expect`: the sorted finding messages (`LC_ALL=C`), which must match byte for byte | 5 lines | 5 lines | 10 lines | 14 lines |
-| `fixtures/mutants.json` (RFC 6902) | — | 23 rows: 17 kill, 6 survive | — | — |
+| `fixtures/mutants.json` (RFC 6902) | — | 24 rows: 18 kill, 6 survive | — | — |
 
 **These fixtures test the contracts, not a run.** They are hand-built records and are not evidence that any demo ran. Only a live run judged by the harness is (§4).
 
@@ -303,7 +304,7 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 1. `pv validate` on D18's contract.
 2. Judge the golden record (Green), then the planted record (Red, with output equal to `.expect`).
 3. Apply each row of `fixtures/mutants.json` with an RFC 6902 subset of `add`, `remove` and `replace` over `serde_json` pointers, and judge it:
-   - **each of the 17 kill rows must be killed purely:** exit 1, exactly the row's stated finding count, the findings naming exactly the row's `properties`, and every message beginning with exactly ``ont:d18/d18-run-v1<node> violates shape `<target>` (<component>)``, the row's own node, shape and component;
+   - **each of the 18 kill rows must be killed purely:** exit 1, exactly the row's stated finding count, the findings naming exactly the row's `properties`, and every message beginning with exactly ``ont:d18/d18-run-v1<node> violates shape `<target>` (<component>)``, the row's own node, shape and component;
    - **each of the 6 survive rows must pass:** exit 0, Pass, no findings. A survivor that starts failing means the list of what the shapes cannot see is stale.
 4. Copy D18's `spec/` and the record into D19's own run directory, outside any git work tree, and run `pv extract spec` there, then `--check` (0), then a one-byte record edit, then `--check` again (1). D18's tree is never written, so ph5 and ph3 share no output path.
 5. Write D19's own record, judge it with D19's shapes, and write the Receipt.
@@ -481,7 +482,7 @@ The 17 checks:
 | the golden record is Green: exit 0, Pass, zero findings and violations, the positive control fired, nothing unarmed, W3C 19/19, and `focus_nodes_n`, `shapes_n`, `plant_violations` equal to §3 | 4 |
 | the planted record exits 1, with sorted findings byte-equal to `.expect` | 4 |
 | D19's record agrees with D18's `.expect` and with `mutants.json` | 4 |
-| the mutant table (`verify-mutants.sh`): 17/17 killed and named, each finding byte-equal to the row's `messages`; 6/6 survived, each naming its Rust assert | 1 |
+| the mutant table (`verify-mutants.sh`): 18/18 killed and named, each finding byte-equal to the row's `messages`; 6/6 survived, each naming its Rust assert | 1 |
 
 - Every judge run is materialised in a fresh directory outside any git work tree (M4).
 - Any other number of checks fails: a gate over a different set of checks is not this gate.
@@ -706,6 +707,13 @@ Recorded, not changed:
 - **contradiction: D20's `operator_untouched` domain left out the canary file** that §5.3 plants. It now names the canary, matching D21.
 - **undelivered-guarantee: `env!("CARGO_REGISTRY_TOKEN")` read as admitted.** As written, the rule admits only the names Cargo sets, so the lane misread it. Even so, the rule now lists those names and says it never matches on a `CARGO_` prefix (§5.3).
 - **undelivered-guarantee: a closure `build.rs` could plant a symlink for `include_str!` to embed.** This needs a deliberately hostile author, which is outside the lint's stated limit. Even so, the lint now refuses any `build.rs` in the closure, and an included path must name a regular, git-tracked file (§5.3).
+
+**Round 4o** re-ran architecture and security on gemini-3.1-pro-high, quoting the Round 4n record. Both returned PASS with no defects; the spec was not changed.
+
+**Round 4p** re-ran crux, adversarial and quality on the same text, because their round-4 PASS predated rounds 4b to 4n. Crux returned PASS. Adversarial and quality each returned FAIL with one finding. Neither breaks a stated guarantee, but each names a real gap, and both were closed:
+
+- **adversarial: the self-test row `d21-spec-deleted` named no reason,** so deleting the one-contract guard left the row green. The row now requires the reason `spec/ must hold exactly one contract`, and deleting the guard was measured to fail it (27/28).
+- **quality: FALSIFY-D18-005 was exercised by no fixture.** Mutant m18 now adds `out/verdicts.json` to `writer_files`, and `sh:in` kills it purely. The mutant table, D19's contract (`killed` minCount 18), both D19 receipts and the counts in this spec moved from 17 kill rows to 18.
 
 **Escalations:**
 

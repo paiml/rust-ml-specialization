@@ -14,7 +14,7 @@
 #   d19       x4  D19's golden record agrees with what it summarises: planted_findings is the line
 #                 count of D18's .expect; killed, survived and components_killed are exactly the ids
 #                 and components of fixtures/mutants.json.
-#   mutants   x1  verify-mutants.sh: 17/17 killed and named, each finding byte-equal to its row, and
+#   mutants   x1  verify-mutants.sh: 18/18 killed and named, each finding byte-equal to its row, and
 #                 6/6 survived, each naming the Rust assert that catches it.
 # Any other count fails: a gate over a different set of checks is not this gate.
 #
@@ -38,7 +38,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 DEMOS=(d18-two-agents-one-server d19-workflow-ontology d20-agy-app-fanout d21-agy-app-fanin)
 PV_PIN=0.70.1
 EXPECTED_CHECKS=17
-KILL_N=17
+KILL_N=18
 SURVIVE_N=6
 MUTANTS_CHECK="d19 mutants $KILL_N/$KILL_N killed+named, $SURVIVE_N/$SURVIVE_N survived"
 # Per demo: focus_nodes_n, shapes_n and plant_violations of the golden run, as the spec states them.
@@ -167,7 +167,7 @@ if [ "$self_test" -eq 1 ]; then
     "d20-expect-extra-line|1|d20-agy-app-fanout planted == .expect"
     "d20-golden-no-insertText|1|d20-agy-app-fanout golden Green"
     "d21-golden-sends-F12|1|d21-agy-app-fanin golden Green"
-    "d21-spec-deleted|1|d21-agy-app-fanin golden Green;d21-agy-app-fanin planted == .expect;d21-agy-app-fanin validate"
+    "d21-spec-deleted|1|d21-agy-app-fanin golden Green;d21-agy-app-fanin planted == .expect;d21-agy-app-fanin validate|spec/ must hold exactly one contract"
     "empty-demos-dir|1|d18-two-agents-one-server present;d19 components_killed == mutants.json components;d19 killed == mutants.json kill ids;$MUTANTS_CHECK;d19 planted_findings == d18 .expect lines;d19 survived == mutants.json survive ids;d19-workflow-ontology present;d20-agy-app-fanout present;d21-agy-app-fanin present"
     "m01-moved-to-survive|1|d19 killed == mutants.json kill ids;$MUTANTS_CHECK;d19 survived == mutants.json survive ids"
     "m03-vacuous-patch|1|$MUTANTS_CHECK|m03 PATCH-FAILED-OR-VACUOUS"

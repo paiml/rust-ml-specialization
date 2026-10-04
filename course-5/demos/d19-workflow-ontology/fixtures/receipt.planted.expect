@@ -1,5 +1,5 @@
 ont:d19/d19-run-v1 violates shape `d19-run` (in): ont:d19/extract_drift_exit: "0"^^xsd:integer is not one of ["1"^^xsd:integer]
 ont:d19/d19-run-v1 violates shape `d19-run` (in): ont:d19/planted_findings: "6"^^xsd:integer is not one of ["5"^^xsd:integer]
 ont:d19/d19-run-v1 violates shape `d19-run` (lessThanOrEquals): ont:d19/w3c_total: "19"^^xsd:integer is not <= "18"^^xsd:integer of ont:d19/w3c_passed
-ont:d19/d19-run-v1 violates shape `d19-run` (minCount): has 16 value(s) of ont:d19/killed, minCount is 17
+ont:d19/d19-run-v1 violates shape `d19-run` (minCount): has 17 value(s) of ont:d19/killed, minCount is 18
 ont:d19/d19-run-v1 violates shape `d19-run` (minCount): has 5 value(s) of ont:d19/survived, minCount is 6

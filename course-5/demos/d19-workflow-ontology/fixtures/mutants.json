@@ -399,6 +399,26 @@
       "messages": [
         "ont:d18/d18-run-v1 violates shape `d18-run` (closed): carries ont:d18/rdf:type, which the closed shape does not declare"
       ]
+    },
+    {
+      "id": "m18",
+      "component": "in",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "writer_files"
+      ],
+      "patch": [
+        {
+          "op": "add",
+          "path": "/writer_files/-",
+          "value": "out/verdicts.json"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (in): ont:d18/writer_files: \"out/verdicts.json\" is not one of [\"out/answers.json\"]"
+      ]
     }
   ],
   "survive": [

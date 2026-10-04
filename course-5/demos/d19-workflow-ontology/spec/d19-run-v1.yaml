@@ -55,7 +55,7 @@ shapes:
       - {path: d19:planted_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [1]}
       - {path: d19:planted_findings, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [5]}
       - {path: d19:planted_matches_expect, minCount: 1, maxCount: 1, in: [true]}
-      - {path: d19:killed, minCount: 17, maxCount: 17, pattern: '^m(0[1-9]|1[0-7])$'}
+      - {path: d19:killed, minCount: 18, maxCount: 18, pattern: '^m(0[1-9]|1[0-8])$'}
       - {path: d19:survived, minCount: 6, maxCount: 6, pattern: '^s0[1-6]$'}
       - {path: d19:components_killed, minCount: 7, in: [in, datatype, pattern, lessThanOrEquals, minCount, maxCount, closed]}
 equations:
@@ -101,7 +101,7 @@ invariants:
 falsification_tests:
   - id: FALSIFY-D19-001
     rule: every mutant killed
-    prediction: a run where one kill mutant passed (its id absent from killed) is rejected by minCount 17
+    prediction: a run where one kill mutant passed (its id absent from killed) is rejected by minCount 18
     test: pv lint spec --gate shapes
     if_fails: a constraint that never fires would look like a working one
   - id: FALSIFY-D19-002
