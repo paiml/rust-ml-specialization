@@ -38,9 +38,28 @@ pub trait Screen {
     fn line(&mut self, text: &str);
 }
 
-/// The terminal: lines to stdout, cues to the pacer (if any).
+/// The terminal: lines to stdout, cues to the pacer (if any). Each cue's
+/// time since the terminal opened is kept, paced or not, so an unpaced run
+/// measures how long each beat's screen step takes.
 pub struct Terminal<'a> {
-    pub pacer: Option<&'a demo_kit::pace::Pacer>,
+    pacer: Option<&'a demo_kit::pace::Pacer>,
+    t0: std::time::Instant,
+    cues: Vec<(String, f64)>,
+}
+
+impl<'a> Terminal<'a> {
+    pub fn new(pacer: Option<&'a demo_kit::pace::Pacer>) -> Self {
+        Terminal {
+            pacer,
+            t0: std::time::Instant::now(),
+            cues: Vec::new(),
+        }
+    }
+
+    /// (tag, seconds since the terminal opened) for every cue, in order.
+    pub fn cue_times(&self) -> &[(String, f64)] {
+        &self.cues
+    }
 }
 
 impl Screen for Terminal<'_> {
@@ -48,6 +67,8 @@ impl Screen for Terminal<'_> {
         if let Err(e) = demo_kit::pace::cue(self.pacer, tag) {
             eprintln!("pace: {tag}: {e}");
         }
+        self.cues
+            .push((tag.to_string(), self.t0.elapsed().as_secs_f64()));
     }
     fn line(&mut self, text: &str) {
         println!("{text}");

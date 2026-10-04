@@ -13,6 +13,12 @@ cmd = "cargo run -q -p d18-two-agents-one-server --bin d18-two-agents-one-server
 shapes = "Green"
 planted = "Red, messages byte-equal to fixtures/receipt.planted.expect"
 exit = 0
+one_load = true
+disjoint_writes = true
+digests_recomputed = true
+decisions_from_checker = true
+one_clock = true
+pipelined_overlaps = true
 
 [record]
 target_duration_s = 300
