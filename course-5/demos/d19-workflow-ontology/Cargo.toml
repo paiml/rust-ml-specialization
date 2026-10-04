@@ -8,3 +8,4 @@ description = "D19: the workflow as an ontology; pv judges the run record and a 
 
 [dependencies]
 demo-kit = { path = "../demo-kit" }
+serde_json.workspace = true
