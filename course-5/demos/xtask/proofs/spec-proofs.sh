@@ -146,6 +146,8 @@ if [ "$self_test" -eq 1 ]; then
         lintshim "$c" . '[ $e -eq 1 ] && exit 0; exit $e' ;;
       pv-validate-always-0)
         shim "$c" 'if [ "${1:-}" = validate ]; then exit 0; fi' ;;
+      pv-validate-refuses-unparsed)
+        shim "$c" 'if [ "${1:-}" = validate ] && [[ "${2:-}" == */negative-* ]]; then echo "mapping values are not allowed in this context"; exit 1; fi' ;;
       second-yaml-in-spec)
         cp "$c/d20-agy-app-fanout/spec/d20-run-v1.yaml" "$c/d20-agy-app-fanout/spec/d20-run-v2.yaml" ;;
       s05-rust-assert-none)
@@ -185,6 +187,7 @@ if [ "$self_test" -eq 1 ]; then
     "pv-lint-reject-exits-2|1|$PLANTED_ALL;$MUTANTS_CHECK|NOT-KILLED(exit 2)"
     "pv-lint-reject-exits-0|1|$PLANTED_ALL;$MUTANTS_CHECK|NOT-KILLED(exit 0)"
     "pv-validate-always-0|1|$VALIDATE_ALL|accepted a contract with a duplicate key"
+    "pv-validate-refuses-unparsed|1|$VALIDATE_ALL|but not for a duplicate key"
     "second-yaml-in-spec|1|d20-agy-app-fanout golden Green;d20-agy-app-fanout planted == .expect;d20-agy-app-fanout validate|must hold exactly one contract"
     "s05-rust-assert-none|1|$MUTANTS_CHECK|s05 NO-RUST-ASSERT"
     "m07-wrong-message|1|$MUTANTS_CHECK|WRONG-MESSAGE(the findings are not"
@@ -254,10 +257,14 @@ for d in "${DEMOS[@]}"; do
   if [ "${#yamls[@]}" -ne 1 ] || [ ! -f "${yamls[0]}" ]; then
     bad "$d validate" "spec/ must hold exactly one contract"
   else
-    { cat "${yamls[0]}"; echo "falsification_tests: []"; } > "$root/negative-$d.yaml"
+    # The key goes after a guaranteed newline: appended to a last line with none, it would join that
+    # line, the YAML would not parse, and a parse error would pass for the refusal (round 4r2).
+    { cat "${yamls[0]}"; printf '\nfalsification_tests: []\n'; } > "$root/negative-$d.yaml"
     if ! pv validate "${yamls[0]}" > "$root/validate-$d.txt" 2>&1; then bad "$d validate" "pv validate exit $?"
     elif pv validate "$root/negative-$d.yaml" > "$root/negative-$d.txt" 2>&1; then
       bad "$d validate" "pv validate accepted a contract with a duplicate key: it cannot fail"
+    elif ! grep -q 'duplicate field' "$root/negative-$d.txt"; then
+      bad "$d validate" "pv validate refused the negative control, but not for a duplicate key"
     else ok "$d validate"; fi
   fi
 

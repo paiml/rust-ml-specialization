@@ -6,7 +6,7 @@ status: active
 # rfml5 new demos D18–D21: two agents on one server, the workflow as an ontology, and agent fan-out in the Antigravity app
 
 **Ticket:** PMAT-020 (#20), epic #19. **Branch:** `PMAT-020-rfml5-new-demos`.
-**Status:** spec, revised after quorum rounds 1 to 4q (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
+**Status:** spec, revised after quorum rounds 1 to 4r (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 29 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
 
 ## 0. Origin
 
@@ -264,7 +264,7 @@ The changes:
    - D19 additionally runs the mutant matrix (§5.2).
    - D20 and D21 additionally check `app_evidence = EVIDENCE ∩ {m.method : m ∈ cdp_methods}`. With the shapes' `minCount: 5` this means each of the five evidence methods was sent at least once. pv cannot relate one property's values to another node's, so this cross-check is Rust's (M8).
    - `xtask verify --only <id>` is added so each build phase has its own acceptance command.
-   - The arm **ports** the two committed proof scripts, `xtask/proofs/spec-proofs.sh` and `xtask/proofs/verify-mutants.sh`, into Rust. Each of the scripts' twenty-eight `--self-test` sabotages becomes a test that must see exactly its named set of checks refuse, and, for the four mutant-table rows, its named reason. Once the port is green, ph2 deletes both scripts, so no gate is kept in two places.
+   - The arm **ports** the two committed proof scripts, `xtask/proofs/spec-proofs.sh` and `xtask/proofs/verify-mutants.sh`, into Rust. Each of the scripts' twenty-nine `--self-test` sabotages becomes a test that must see exactly its named set of checks refuse, and, for the four mutant-table rows, its named reason. Once the port is green, ph2 deletes both scripts, so no gate is kept in two places.
 6. **CI installs pv.** `aprender-contracts-cli` 0.70.1 is published on crates.io (MIT).
    - The `course-5-demos` job gains `cargo install aprender-contracts-cli --version 0.70.1 --locked`, cached the same way as `bashrs`.
    - The job's existing rule holds: *a missing tool fails, never skips.*
@@ -471,14 +471,14 @@ Steps 1–3 are `E_4` above; its exit status is the gate. If any step fails, ph4
 
 ```bash
 bash course-5/demos/xtask/proofs/spec-proofs.sh course-5/demos               # exactly 17 checks, 0 failing
-bash course-5/demos/xtask/proofs/spec-proofs.sh --self-test course-5/demos   # 28/28 sabotages, each refused exactly as its row states
+bash course-5/demos/xtask/proofs/spec-proofs.sh --self-test course-5/demos   # 29/29 sabotages, each refused exactly as its row states
 ```
 
 The 17 checks:
 
 | Checks | Count |
 |---|---|
-| `spec/` holds exactly one contract; `pv validate` accepts it and refuses the same contract with a key declared twice (the negative control: `pv validate` is lenient, and a validate that cannot fail proves nothing by passing) | 4 |
+| `spec/` holds exactly one contract; `pv validate` accepts it and refuses the same contract with a key declared twice, and for that reason: its message must name the duplicate field (the negative control: `pv validate` is lenient, and a validate that cannot fail proves nothing by passing) | 4 |
 | the golden record is Green: exit 0, Pass, zero findings and violations, the positive control fired, nothing unarmed, W3C 19/19, and `focus_nodes_n`, `shapes_n`, `plant_violations` equal to §3 | 4 |
 | the planted record exits 1, with sorted findings byte-equal to `.expect` | 4 |
 | D19's record agrees with D18's `.expect` and with `mutants.json` | 4 |
@@ -486,7 +486,7 @@ The 17 checks:
 
 - Every judge run is materialised in a fresh directory outside any git work tree (M4).
 - Any other number of checks fails: a gate over a different set of checks is not this gate.
-- `--self-test` proves the gate can fail. It plants twenty-eight sabotages, each in a fresh copy of the demos tree. A row reads `name|exit|want[|reason]`:
+- `--self-test` proves the gate can fail. It plants twenty-nine sabotages, each in a fresh copy of the demos tree. A row reads `name|exit|want[|reason]`:
   - for exit 1, `want` is the exact set of failing checks, sorted with `LC_ALL=C` and joined with `;`. A sabotage that also trips a check it does not name fails the self-test;
   - for exit 2, `want` is the exact last line. The one such row runs an unpinned pv (0.70.2), which is refused as not measured;
   - `reason`, on every row where the check alone does not say why, is a fixed string the output must contain, so the gate must fail for the stated reason, not merely fail;
@@ -527,7 +527,7 @@ D19's density (E4) is not addressed here: it is a proposal waiting on the outlin
   - `app_evidence` and `keys_sent`, with the `app_driven` equation, `D21-INV-006` and `FALSIFY-D21-006`.
 - **The committed `A_1`:**
   - the two proof scripts;
-  - the self-test, then with eight sabotages, then sixteen, now twenty-eight.
+  - the self-test, then with eight sabotages, then sixteen, then twenty-eight, now twenty-nine.
 
 **Quorum round 2** reviewed the revision above, with the same three models:
 
@@ -721,6 +721,12 @@ Recorded, not changed:
 - **security: three findings that assume a hostile author** (a spawned `Command` inside a demo, a `javascript:` link in the agent view, an agent that reads back a credential). Each is a stated limit, not a gap: §5.3 says the lint "reviews our own driver for a mistake; it is not a sandbox against hostile code", `Command` is already refused outside the launcher, and the demo never holds a credential to read back. Not adopted.
 - **quality: tampering with a pinned digest is not caught.** It is: a changed digest is the drift case, and `extract_drift_exit` turns it into a non-zero exit. Not adopted.
 - **crux: `order_free` does not prove that each digest came from a different permutation.** True of the record alone, and now said so in §1. The guarantee is held in Rust, by the one `permutations()` helper that both the live run and the reducer's unit tests use (six permutations plus a constant-reducer negative control). Kept as an advisory.
+
+**Round 4r** ran all five roles on one text. Architecture and quality returned PASS. Security, crux and adversarial returned FAIL, and in **round 4r2** those three were shown the orchestrator's triage on the same text and asked to accept it or rebut it with new grounding:
+
+- **security: an HTTP request to the debugging port bypasses the method allow-list.** §5.3 already confines every socket to `agy-cdp::transport`, whose only HTTP request is the discovery GET; another request would have to be written there on purpose. Accepted in 4r2.
+- **crux: D19's record could claim 18 kills that pv never made.** The record is a summary, not the judge: `xtask verify` re-runs the whole table and compares each row's exit, count, properties and exact messages. Accepted in 4r2; the record-alone point stays an advisory, as for `order_free`.
+- **adversarial: the duplicate-key negative control could pass on a parse error.** Rebutted in 4r2 with a measurement, and confirmed. Appended to a contract whose last line has no newline, the second key joined that line, pv refused the YAML as unparseable, and any refusal counted. The key is now appended after a guaranteed newline, the check requires pv's message to name the duplicate field, and the new sabotage `pv-validate-refuses-unparsed` proves that requirement can fail (29/29). A contract with its final newline removed was measured to still validate on a real duplicate key. The lane's other two findings (an empty-findings check whose removal leaves the gate Red, and a line sort that no current message can reorder) were accepted as advisories.
 
 **Escalations:**
 
