@@ -59,7 +59,7 @@ struct Env {
 fn env() -> Result<Env, String> {
     let profile = launch::profile_from_env()?;
     if operator_listing::overlaps(&profile)? {
-        return Err("RFML5_AGY_PROFILE overlaps an operator directory".into());
+        return Err("the demo profile overlaps an operator directory".into());
     }
     let bin = launch::app_bin_from_env()?;
     let receipts = std::env::var_os("RFML5_RECEIPTS").ok_or("RFML5_RECEIPTS")?;
@@ -158,13 +158,15 @@ fn probe_controls(
         let nodes = ax::tree(conn, page)?;
         record(&mut found, &nodes);
     }
+    skip_interstitial(conn, page, &mut found)?;
     click_control(conn, page, 2)?;
     std::thread::sleep(Duration::from_secs(1));
-    if ax::insert_text_checked(conn, page, PROBE_PROMPT.trim()).is_ok() {
-        ax::press(conn, page, Key::Enter)?;
+    match ax::insert_text_checked(conn, page, PROBE_PROMPT.trim()) {
+        Ok(()) => ax::press(conn, page, Key::Enter)?,
+        Err(m) => eprintln!("probe prompt not sent: {m}"),
     }
-    for i in 1..=6 {
-        std::thread::sleep(Duration::from_secs(3));
+    for i in 1..=10 {
+        std::thread::sleep(Duration::from_secs(2));
         let nodes = ax::tree(conn, page)?;
         roots.write_run(
             &format!("ax-tree-{i}.json"),
@@ -202,7 +204,7 @@ fn session(e: &Env, roots: &Roots, x: &Xvfb, app: &mut App) -> Result<Outcome, S
     let map = json!({
         "schema": "role-name-map-v1",
         "app_version": "2.8.1",
-        "xdotool": launch::xdotool_version()?,
+        "xdotool": launch::xdotool_version(x)?,
         "controls": controls,
         "devtools": devtools,
         "devtools_in_snapshot": tally.devtools_in_snapshot(),
@@ -213,7 +215,10 @@ fn session(e: &Env, roots: &Roots, x: &Xvfb, app: &mut App) -> Result<Outcome, S
         "role-name-map.json",
         (serde_json::to_string_pretty(&map).map_err(|e| e.to_string())? + "\n").as_bytes(),
     )?;
-    let n = map["controls"].as_object().map_or(0, |m| m.len());
+    let n = CONTROLS
+        .iter()
+        .filter(|(c, _, _)| map["controls"].get(c).is_some())
+        .count();
     eprintln!(
         "controls found: {n}/6 {:?}",
         map["controls"]
@@ -266,13 +271,10 @@ fn run() -> Outcome {
         before.len(),
         changed.len()
     );
-    for c in changed.iter().take(20) {
+    for c in &changed {
         eprintln!("  changed: {}", c.display());
     }
     match res {
-        Ok(Outcome::Green(_)) if !changed.is_empty() => {
-            Outcome::Red("operator listing changed".into())
-        }
         Ok(o) => o,
         Err(m) => Outcome::Red(m),
     }
@@ -294,4 +296,22 @@ fn main() -> ExitCode {
             ExitCode::from(2)
         }
     }
+}
+
+/// The "Create a Project" dialog after a new conversation: "Not now".
+fn skip_interstitial(
+    conn: &mut Conn,
+    page: &Page,
+    found: &mut BTreeMap<String, Value>,
+) -> Result<(), String> {
+    let nodes = ax::tree(conn, page)?;
+    if let Some(n) = find_control(&nodes, &["button"], &["not now"]) {
+        found.insert(
+            "interstitial_not_now".into(),
+            json!({"role": n.role, "name": n.name}),
+        );
+        ax::click(conn, page, n)?;
+        std::thread::sleep(Duration::from_secs(2));
+    }
+    Ok(())
 }

@@ -124,10 +124,11 @@ pub fn xdotool_key(display: &Xvfb, key: XdotoolKey) -> Result<i32, String> {
 }
 
 /// `xdotool version`, first line.
-pub fn xdotool_version() -> Result<String, String> {
+pub fn xdotool_version(display: &Xvfb) -> Result<String, String> {
     let out = Command::new("xdotool")
         .env_clear()
         .env("PATH", CHILD_PATH)
+        .env("DISPLAY", display.display())
         .arg("version")
         .output()
         .map_err(|e| format!("xdotool: {e}"))?;
