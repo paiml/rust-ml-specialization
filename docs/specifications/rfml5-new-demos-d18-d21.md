@@ -6,7 +6,7 @@ status: active
 # rfml5 new demos D18–D21: two agents on one server, the workflow as an ontology, and agent fan-out in the Antigravity app
 
 **Ticket:** PMAT-020 (#20), epic #19. **Branch:** `PMAT-020-rfml5-new-demos`.
-**Status:** spec, revised after quorum rounds 1 to 4u (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 29 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
+**Status:** spec, revised after quorum rounds 1 to 4v (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 29 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
 
 ## 0. Origin
 
@@ -264,7 +264,7 @@ The changes:
    - D19 additionally runs the mutant matrix (§5.2).
    - D20 and D21 additionally check `app_evidence = EVIDENCE ∩ {m.method : m ∈ cdp_methods}`. With the shapes' `minCount: 5` this means each of the five evidence methods was sent at least once. pv cannot relate one property's values to another node's, so this cross-check is Rust's (M8).
    - `xtask verify --only <id>` is added so each build phase has its own acceptance command.
-   - `xtask promote-fixture <gate>` is added for the two entry gates, `e3-probe` and `measure-stop-latency`. Each variant names one file in that gate's latest run directory and one destination under a crate's `fixtures/`. With `--check` it measures nothing and writes nothing: it reads the committed destination and exits 0 only when it parses and is not the sentinel. It refuses a missing or empty source, and an existing destination that differs unless that destination is the unmeasured sentinel below or `--replace` is given, and it prints the sha256 it wrote.
+   - `xtask promote-fixture <gate>` is added for the two entry gates, `e3-probe` and `measure-stop-latency`. Each variant names one file in that gate's latest run directory and one destination under a crate's `fixtures/`. With `--check` it measures nothing and writes nothing: it reads the committed destination and exits 0 only when it parses and is not the sentinel. Without `--check`, it refuses a missing or empty source, and an existing destination that differs unless that destination is the unmeasured sentinel below or `--replace` is given, and it prints the sha256 it wrote.
    - **Bootstrap.** An embedded fixture must exist before the first build, but its real content comes from a probe that needs the build. So ph2 commits each of the two fixtures as the sentinel `{"status":"unmeasured"}`. The typed parsers in `agy-cdp` and d21 accept the sentinel and return it as `Unmeasured`. The probes never read the fixture, so they build and run against it. D20 and D21 refuse it: a run whose role/name map or stop-latency L is `Unmeasured` is `NotRun(FixtureUnmeasured)`, never Green. After the first promote, a differing measured fixture is replaced only with `--replace`, so a re-measure is a decision, not a side effect.
    - **Measuring is not re-run; checking is.** The entry gates E_4 and E_6 run once, by the phase worker, and end in a commit. A fresh measurement differs from the committed one (30 new timing samples are never byte-identical), so the ph4 and ph6 acceptance cells do not re-measure. They run `promote-fixture --check <gate>`, which reads only the committed fixture and exits 0 when it parses and is not the sentinel, so the orchestrator can re-run the cell any number of times.
    - The arm **ports** the two committed proof scripts, `xtask/proofs/spec-proofs.sh` and `xtask/proofs/verify-mutants.sh`, into Rust. Each of the scripts' twenty-nine `--self-test` sabotages becomes a test that must see exactly its named set of checks refuse, and, for the four mutant-table rows, its named reason. Once the port is green, ph2 deletes both scripts, so no gate is kept in two places.
@@ -745,7 +745,21 @@ Recorded, not changed:
 
 - **architecture: the ph4 and ph6 acceptance cells could not be re-run.** Each cell measured afresh and then promoted. A second measurement differs from the committed fixture, and `promote-fixture` refuses a differing measured fixture without `--replace`, so the orchestrator's re-run of the cell failed by design. Now measuring stays in the entry gates (run once, ending in a commit), and the acceptance cells run `promote-fixture --check <gate>`, which reads only the committed fixture (§4, §6).
 - **adversarial (advisory, fixed):** the `pv validate` refusal printed `exit 0`, because `$?` after `if !` is the negated status. The exit is now captured before the test.
-- **not adopted, each grounded:** security's claim that `open_under` admits `..` (§5.3 permits a `..` only when the joined path stays inside the including crate's own dir, and the rule refuses any other); adversarial's remaining four points (each restates a design already on the advisory list); quality's reading of "split" in the Round 4t record, which is reworded to say what was meant: a message holding a newline.
+- **not adopted, each grounded:** security's claim that `open_under` admits `..` (§5.3's `open_under` rule refuses every `..`, root and prefix component outright; the narrower `..` allowance in §5.3 applies only to `include!`/`include_str!` paths inside the including crate); adversarial's remaining four points (each restates a design already on the advisory list); quality's reading of "split" in the Round 4t record, which is reworded to say what was meant: a message holding a newline.
+
+**Round 4v** ran all five roles on one text. Every lane confirmed the 4u fix had landed, and every lane returned FAIL. Two textual contradictions were confirmed and fixed, with no change in behaviour:
+
+- **quality: the Round 4u record cited the wrong rule.** It grounded the `open_under` non-adoption on the `include!` `..` allowance; `open_under` refuses every `..` outright. The record now cites that rule.
+- **crux: `promote-fixture --check` read as both writing nothing and printing the sha256 it wrote.** The refusal and sha256 sentence now begins "Without `--check`".
+- **not adopted, each grounded:**
+  - security's discovery-order point (attaching to the browser connection and sending `Target.setDiscoverTargets` first are the same event);
+  - security's symlink point (a target inside the listed dirs is listed itself, and writing through any path outside the profile is refused by the confinement rule);
+  - security's `targetInfoChanged` point (the method allow-list has no navigation method, and the teardown `Target.getTargets` snapshot fails the run on any DevTools target);
+  - crux's port binding (on the advisory list);
+  - architecture's ph6 scope (the round-3 record is history; round 4s moved the role/name map into `agy-cdp/fixtures/`, so ph6 reads no D20 file);
+  - adversarial's empty-findings sabotage (on the advisory list);
+  - adversarial's trailing-newline point (both sides are sorted line by line before the substitution, so an extra empty line sorts first and still differs);
+  - quality's FALSIFY-D18-005 (covered by mutant m18; planted-defect coverage is on the advisory list).
 
 **Escalations:**
 
