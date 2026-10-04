@@ -29,14 +29,16 @@
     "m13",
     "m14",
     "m15",
-    "m16"
+    "m16",
+    "m17"
   ],
   "survived": [
     "s01",
     "s02",
     "s03",
     "s04",
-    "s05"
+    "s05",
+    "s06"
   ],
   "components_killed": [
     "closed",

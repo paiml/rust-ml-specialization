@@ -3,7 +3,11 @@ ont:d21/d21-run-v1 violates shape `d21-run` (in): ont:d21/merged: "true"^^xsd:bo
 ont:d21/d21-run-v1 violates shape `d21-run` (in): ont:d21/refusal_names: "agent-2" is not one of ["agent-3"]
 ont:d21/d21-run-v1 violates shape `d21-run` (in): ont:d21/stopped_agents: "agent-3" is not one of ["agent-1", "agent-2"]
 ont:d21/d21-run-v1 violates shape `d21-run` (lessThanOrEquals): ont:d21/red_seen_ms: "5120"^^xsd:integer is not <= "5100"^^xsd:integer of ont:d21/stop_agent_1_sent_ms
+ont:d21/d21-run-v1 violates shape `d21-run` (lessThanOrEquals): ont:d21/red_seen_ms: "5120"^^xsd:integer is not <= "5110"^^xsd:integer of ont:d21/stop_agent_2_sent_ms
+ont:d21/d21-run-v1 violates shape `d21-run` (lessThanOrEquals): ont:d21/stop_agent_1_sent_ms: "5100"^^xsd:integer is not <= "5090"^^xsd:integer of ont:d21/stop_agent_1_stopped_ms
+ont:d21/d21-run-v1 violates shape `d21-run` (lessThanOrEquals): ont:d21/stop_agent_2_sent_ms: "5110"^^xsd:integer is not <= "5105"^^xsd:integer of ont:d21/stop_agent_2_stopped_ms
 ont:d21/d21-run-v1 violates shape `d21-run` (maxCount): has 2 value(s) of ont:d21/reduce_digest_per_order, maxCount is 1: beb5cec22ba7061bacd487bfcbf627cfc5ef80eb44233de990e9be035070f400, beb5cec22ba7061bacd487bfcbf627cfc5ef80eb44233de990e9be035070f40d
-ont:d21/d21-run-v1 violates shape `d21-run` (minCount): has 2 value(s) of ont:d21/app_evidence, minCount is 3
+ont:d21/d21-run-v1 violates shape `d21-run` (minCount): has 4 value(s) of ont:d21/app_evidence, minCount is 5
 ont:d21/d21-run-v1 violates shape `d21-run` (minCount): has 5 value(s) of ont:d21/reduce_orders, minCount is 6
+ont:d21/d21-run-v1.cdp_methods.8 violates shape `d21-cdp-method` (pattern): ont:d21/count: "0" does not match /^[1-9][0-9]*$/
 ont:d21/d21-run-v1.cdp_methods.9 violates shape `d21-cdp-method` (pattern): ont:d21/method: "Runtime.callFunctionOn" does not match /^(Target\.(getTargets|attachToTarget|detachFromTarget|setDiscoverTargets)|Browser\.getVersion|Page\.(enable|captureScreenshot|bringToFront)|DOM\.(enable|getDocument|getBoxModel|scrollIntoViewIfNeeded|focus|describeNode)|Accessibility\.(enable|getFullAXTree|queryAXTree)|Input\.(dispatchMouseEvent|dispatchKeyEvent|insertText))$/

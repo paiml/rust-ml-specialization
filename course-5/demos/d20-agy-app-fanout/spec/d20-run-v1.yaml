@@ -1,5 +1,5 @@
 name: d20-run
-version: "1.1.0"
+version: "1.2.0"
 scope: >
   The run record one D20 run emits. A Rust program drives the Antigravity
   desktop app over the Chrome DevTools Protocol and fans out three agents,
@@ -11,7 +11,7 @@ scope: >
   claim about agent N is a constraint on agent N's own properties.
 status: active
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   kind: pattern
   created: '2026-10-04'
   last_modified: '2026-10-04'
@@ -48,7 +48,7 @@ shapes:
       - {path: d20:devtools_targets_opened, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
       - {path: d20:stray_writes, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
       - {path: d20:cdp_methods, minCount: 1}
-      - {path: d20:app_evidence, minCount: 3, in: [Accessibility.getFullAXTree, Input.dispatchMouseEvent, Input.insertText]}
+      - {path: d20:app_evidence, minCount: 5, in: [Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets]}
       - {path: d20:keys_sent, in: [Enter, Escape, Tab]}
       - {path: d20:agent_1_task, minCount: 1, maxCount: 1, in: [fixture-alpha]}
       - {path: d20:agent_2_task, minCount: 1, maxCount: 1, in: [fixture-beta]}
@@ -66,14 +66,14 @@ shapes:
     ignoredProperties: [rdf:type]
     properties:
       - {path: d20:method, minCount: 1, maxCount: 1, pattern: '^(Target\.(getTargets|attachToTarget|detachFromTarget|setDiscoverTargets)|Browser\.getVersion|Page\.(enable|captureScreenshot|bringToFront)|DOM\.(enable|getDocument|getBoxModel|scrollIntoViewIfNeeded|focus|describeNode)|Accessibility\.(enable|getFullAXTree|queryAXTree)|Input\.(dispatchMouseEvent|dispatchKeyEvent|insertText))$'}
-      - {path: d20:count, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d20:count, minCount: 1, maxCount: 1, datatype: xsd:integer, pattern: '^[1-9][0-9]*$'}
 equations:
   fan_out:
     formula: "∀ N ∈ {1,2,3}: task(agent_N) = fixture(N) ∧ state(agent_N) = done"
     domain: "the three agents the driver created in the app's agent view, read back from its accessibility tree"
   app_driven:
-    formula: "{Accessibility.getFullAXTree, Input.dispatchMouseEvent, Input.insertText} ⊆ {m.method : m ∈ cdp_methods}"
-    domain: "app_evidence is computed from the driver's own tally of sent frames, never written by hand; a CLI fallback sends none of the three"
+    formula: "EVIDENCE ⊆ {m.method : m ∈ cdp_methods}, EVIDENCE = {Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets}"
+    domain: "app_evidence is computed from the driver's own tally of sent frames, never written by hand; a CLI fallback sends none of the five. The shapes cannot relate app_evidence to the cdp_methods nodes, so the program asserts app_evidence = EVIDENCE ∩ {m.method} against that tally, and that Target.setDiscoverTargets is the first frame sent on the browser connection, so every Target.targetCreated is counted"
   disjoint_workspaces:
     formula: "∀ N: files(agent_N) ⊆ ws/agent-N/ ∧ stray_writes = 0"
     domain: "every file changed in the scratch tree, attributed to the agent whose view reports editing it and cross-checked against a per-workspace filesystem diff; a change outside every workspace is a stray write"
@@ -105,7 +105,7 @@ invariants:
     prose: false
   - id: D20-INV-005
     property: the app itself was driven
-    formal: 'app_evidence = {Accessibility.getFullAXTree, Input.dispatchMouseEvent, Input.insertText}'
+    formal: 'app_evidence = {Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets}'
     prose: false
 falsification_tests:
   - id: FALSIFY-D20-001
@@ -120,7 +120,7 @@ falsification_tests:
     if_fails: two agents editing one file would pass as a fan-out
   - id: FALSIFY-D20-003
     rule: app driven
-    prediction: a run whose app_evidence lacks Input.insertText is rejected by minCount 3
+    prediction: a run whose app_evidence lacks Input.insertText is rejected by minCount 5
     test: pv lint spec --gate shapes
     if_fails: a CLI fallback that never typed into the app would pass
   - id: FALSIFY-D20-004
@@ -133,3 +133,8 @@ falsification_tests:
     prediction: a run with two identical screenshots is rejected by minCount 3
     test: pv lint spec --gate shapes
     if_fails: one frame captured three times would pass as three moments
+  - id: FALSIFY-D20-006
+    rule: app driven
+    prediction: a record listing a method with count 0 is rejected by sh:pattern on that method node's count
+    test: pv lint spec --gate shapes
+    if_fails: a method named in the tally but never sent would count as evidence

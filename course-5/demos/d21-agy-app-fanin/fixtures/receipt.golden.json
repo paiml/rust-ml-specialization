@@ -45,8 +45,10 @@
   ],
   "app_evidence": [
     "Accessibility.getFullAXTree",
+    "DOM.getBoxModel",
     "Input.dispatchMouseEvent",
-    "Input.insertText"
+    "Input.insertText",
+    "Target.setDiscoverTargets"
   ],
   "keys_sent": [
     "Enter"

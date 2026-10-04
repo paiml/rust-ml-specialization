@@ -24,6 +24,10 @@
       "count": 11
     },
     {
+      "method": "DOM.getBoxModel",
+      "count": 12
+    },
+    {
       "method": "Input.dispatchMouseEvent",
       "count": 12
     },
@@ -37,7 +41,7 @@
     },
     {
       "method": "Page.captureScreenshot",
-      "count": 3
+      "count": 0
     },
     {
       "method": "Runtime.evaluate",
@@ -50,7 +54,9 @@
   ],
   "app_evidence": [
     "Accessibility.getFullAXTree",
-    "Input.dispatchMouseEvent"
+    "DOM.getBoxModel",
+    "Input.dispatchMouseEvent",
+    "Target.setDiscoverTargets"
   ],
   "keys_sent": [
     "Enter",

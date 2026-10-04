@@ -24,6 +24,10 @@
       "count": 11
     },
     {
+      "method": "DOM.getBoxModel",
+      "count": 12
+    },
+    {
       "method": "Input.dispatchMouseEvent",
       "count": 12
     },
@@ -42,8 +46,10 @@
   ],
   "app_evidence": [
     "Accessibility.getFullAXTree",
+    "DOM.getBoxModel",
     "Input.dispatchMouseEvent",
-    "Input.insertText"
+    "Input.insertText",
+    "Target.setDiscoverTargets"
   ],
   "keys_sent": [
     "Enter"

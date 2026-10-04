@@ -45,11 +45,11 @@ shapes:
     ignoredProperties: [rdf:type]
     properties:
       - {path: d18:demo, minCount: 1, maxCount: 1, in: [d18-two-agents-one-server]}
-      - {path: d18:apr_version, minCount: 1, maxCount: 1, in: ["0.70.1"]}
+      - {path: d18:apr_version, minCount: 1, maxCount: 1, pattern: '^0\.70\.[0-9]+$'}
       - {path: d18:model_sha256, minCount: 1, maxCount: 1, in: ["00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4"]}
       - {path: d18:server_spawns, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [1]}
-      - {path: d18:server_pid_start, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:server_pid_end}
-      - {path: d18:server_pid_end, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:server_pid_start}
+      - {path: d18:server_pid_start, minCount: 1, maxCount: 1, datatype: xsd:integer, pattern: '^([2-9]|[1-9][0-9]+)$', lessThanOrEquals: d18:server_pid_end}
+      - {path: d18:server_pid_end, minCount: 1, maxCount: 1, datatype: xsd:integer, pattern: '^([2-9]|[1-9][0-9]+)$', lessThanOrEquals: d18:server_pid_start}
       - {path: d18:server_start_ticks_start, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:server_start_ticks_end}
       - {path: d18:server_start_ticks_end, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:server_start_ticks_start}
       - {path: d18:writer_files, minCount: 1, in: [out/answers.json]}
@@ -65,10 +65,14 @@ shapes:
     closed: true
     ignoredProperties: [rdf:type]
     properties:
+      - {path: d18:seq_writer_start_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:seq_writer_end_ms}
       - {path: d18:seq_writer_end_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:seq_checker_start_ms}
-      - {path: d18:seq_checker_start_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d18:seq_checker_start_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:seq_checker_end_ms}
+      - {path: d18:seq_checker_end_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d18:pipe_writer_start_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:pipe_writer_end_ms}
       - {path: d18:pipe_writer_end_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:pipe_checker_start_ms}
-      - {path: d18:pipe_checker_start_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d18:pipe_checker_start_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:pipe_checker_end_ms}
+      - {path: d18:pipe_checker_end_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
       - {path: d18:decision, minCount: 1, maxCount: 1, in: [accept, reject]}
 equations:
   one_load:
@@ -78,8 +82,8 @@ equations:
     formula: "writes(writer) = {out/answers.json} ∧ writes(checker) = {out/verdicts.json}"
     domain: "the files each role's sink opened, from the program's sink registry; each open is create_new"
   causality:
-    formula: "∀ i ∈ {q1..q4}, ∀ s ∈ {seq, pipe}: writer_end_s(i) ≤ checker_start_s(i)"
-    domain: "per-item timestamps of both schedules, ms since that schedule's start"
+    formula: "∀ i ∈ {q1..q4}, ∀ s ∈ {seq, pipe}: writer_start_s(i) ≤ writer_end_s(i) ≤ checker_start_s(i) ≤ checker_end_s(i)"
+    domain: "per-item timestamps of both schedules, ms since that schedule's start. That the pipelined schedule really overlaps (the writer of item i+1 starts before the checker of item i ends) is asserted in Rust from these same fields, not here"
   schedule_independence:
     formula: "sha256(out | sequential) = sha256(out | pipelined)"
     domain: "answers.json ‖ verdicts.json, byte-exact, temperature 0"

@@ -16,31 +16,47 @@
   "digest_sequential": "5d2b7c1e0f9a4b3c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c",
   "digest_pipelined": "5d2b7c1e0f9a4b3c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c",
   "q1": {
+    "seq_writer_start_ms": 0,
     "seq_writer_end_ms": 1180,
     "seq_checker_start_ms": 1181,
+    "seq_checker_end_ms": 2280,
+    "pipe_writer_start_ms": 0,
     "pipe_writer_end_ms": 1176,
     "pipe_checker_start_ms": 1177,
+    "pipe_checker_end_ms": 2300,
     "decision": "accept"
   },
   "q2": {
+    "seq_writer_start_ms": 2281,
     "seq_writer_end_ms": 3460,
     "seq_checker_start_ms": 3461,
+    "seq_checker_end_ms": 4570,
+    "pipe_writer_start_ms": 1177,
     "pipe_writer_end_ms": 3390,
     "pipe_checker_start_ms": 3391,
+    "pipe_checker_end_ms": 4520,
     "decision": "accept"
   },
   "q3": {
+    "seq_writer_start_ms": 4571,
     "seq_writer_end_ms": 5720,
     "seq_checker_start_ms": 5722,
+    "seq_checker_end_ms": 6860,
+    "pipe_writer_start_ms": 3391,
     "pipe_writer_end_ms": 5560,
     "pipe_checker_start_ms": 5562,
+    "pipe_checker_end_ms": 6700,
     "decision": "reject"
   },
   "q4": {
+    "seq_writer_start_ms": 6861,
     "seq_writer_end_ms": 7990,
     "seq_checker_start_ms": 7991,
+    "seq_checker_end_ms": 9290,
+    "pipe_writer_start_ms": 5561,
     "pipe_writer_end_ms": 7700,
     "pipe_checker_start_ms": 7701,
+    "pipe_checker_end_ms": 8820,
     "decision": "accept"
   }
 }

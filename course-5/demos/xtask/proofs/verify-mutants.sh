@@ -6,6 +6,8 @@
 #   kill      every kill row is rejected (exit 1) with EXACTLY .findings findings, and every finding
 #             starts "<node><focus> violates shape `<target>` (<component>)". A mutant that also trips
 #             a second constraint, or the right one on the wrong node, is NOT killed: it is impure.
+#             Each finding must also name the row's .properties: the first "<ns><prop>" token after
+#             the prefix (the constraint's path), or "-" where pv 0.70.1 names none (datatype).
 #   survive   every survive row passes (exit 0, verdict Pass, no findings). The shapes cannot see it;
 #             the row names the Rust assert that does. A survivor that starts failing is a change in
 #             pv's semantics, and it is reported, never absorbed.
@@ -20,6 +22,10 @@ for f in "$golden" "$table"; do
   [ -f "$f" ] || { echo "verify-mutants: $f: no such file"; exit 2; }
 done
 node=$(jq -er .node "$table") || { echo "verify-mutants: $table has no .node"; exit 2; }
+# A row id that appears twice would count one defect twice; refuse the table outright.
+jq -e '[.kill[].id, .survive[].id] | length == (unique | length)' "$table" > /dev/null \
+  || { echo "verify-mutants: $table has a duplicate row id"; exit 2; }
+ns=${node%/*}/
 work=$(mktemp -d "${TMPDIR:-/tmp}/verify-mutants.XXXXXX") || exit 2
 if git -C "$work" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
   echo "verify-mutants: $work is inside a git work tree (PV-ONT-014); refusing"
@@ -70,6 +76,7 @@ for ((i = 0; i < n_kill; i++)); do
   row=$(jq -c ".kill[$i]" "$table")
   id=$(jq -r .id <<< "$row"); comp=$(jq -r .component <<< "$row"); tgt=$(jq -r .target <<< "$row")
   foc=$(jq -r .focus <<< "$row"); want=$(jq -r .findings <<< "$row")
+  wantp=$(jq -r '.properties // [] | sort | join(" ")' <<< "$row")
   if ! patched "$(jq -c .patch <<< "$row")" "$work/$id.json"; then
     echo "$id PATCH-FAILED-OR-VACUOUS: the patch errors or leaves the golden record unchanged"; continue
   fi
@@ -77,11 +84,15 @@ for ((i = 0; i < n_kill; i++)); do
   prefix="$node$foc violates shape \`$tgt\` ($comp)"
   got=$(wc -l < "$work/$id/messages.txt" 2> /dev/null || echo 0)
   off=$(awk -v p="$prefix" 'index($0, p) != 1' "$work/$id/messages.txt" 2> /dev/null | wc -l)
-  if [ "$e" -eq 1 ] && [ "$got" -eq "$want" ] && [ "$off" -eq 0 ]; then
+  gotp=$(awk -v p="$prefix" -v ns="$ns" '{ s = substr($0, length(p) + 1); i = index(s, ns); if (i == 0) { print "-"; next }
+    s = substr(s, i + length(ns)); match(s, /^[A-Za-z0-9_:.-]+/); t = substr(s, 1, RLENGTH); sub(/:$/, "", t); print t }' \
+    "$work/$id/messages.txt" 2> /dev/null | LC_ALL=C sort | paste -sd " " -)
+  if [ "$e" -eq 1 ] && [ "$got" -eq "$want" ] && [ "$off" -eq 0 ] && [ -n "$wantp" ] && [ "$gotp" = "$wantp" ]; then
     verdict=killed; killed=$((killed + 1))
   elif [ "$e" -ne 1 ]; then verdict="NOT-KILLED(exit $e)"
   elif [ "$off" -ne 0 ]; then verdict="IMPURE($off finding(s) not \"$prefix\")"
-  else verdict="WRONG-COUNT(want $want)"; fi
+  elif [ "$got" -ne "$want" ]; then verdict="WRONG-COUNT(want $want)"
+  else verdict="WRONG-PROPERTY(want [$wantp] got [$gotp])"; fi
   printf '%s %-16s %-8s %-4s exit=%s findings=%s %s\n' "$id" "$comp" "$tgt" "${foc:-.}" "$e" "$got" "$verdict"
 done
 

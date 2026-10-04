@@ -1,7 +1,7 @@
 # rfml5 new demos D18–D21: two agents on one server, the workflow as an ontology, and agent fan-out in the Antigravity app
 
 **Ticket:** PMAT-020 (#20), epic #19. **Branch:** `PMAT-020-rfml5-new-demos`.
-**Status:** spec, revised after quorum round 1 (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` shows each of 8 sabotages refused by the check it targets. None of the four demo binaries exists yet.
+**Status:** spec, revised after quorum rounds 1 and 2 (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 16 sabotages exactly as each row states — the exact set of failing checks, and for the four mutant-table rows the reason as well. None of the four demo binaries exists yet.
 
 ## 0. Origin
 
@@ -22,13 +22,13 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
 | Id | Proposed lesson | One-line claim |
 |---|---|---|
 | D18 `d18-two-agents-one-server` | rfml5/3.3 [U] | Two agents, a writer and a checker, share **one** resident `apr serve`. The checker decides, every output file has one writer, and the schedule does not change the bytes. |
-| D19 `d19-workflow-ontology` | rfml5/3.4 [U] | D18's workflow, written as a pv ontology plus SHACL shapes. pv kills 16 named mutants of a good run, each for exactly the constraint it breaks, and stays silent on the good run itself. Five documented mutants survive: they are what the shapes cannot see, and each is owned by a Rust assert. |
+| D19 `d19-workflow-ontology` | rfml5/3.4 [U] | D18's workflow, written as a pv ontology plus SHACL shapes. pv kills 17 named mutants of a good run, each for exactly the constraint it breaks, and stays silent on the good run itself. Six documented mutants survive: they are what the shapes cannot see, and each is owned by a Rust assert. |
 | D20 `d20-agy-app-fanout` | rfml5/4.3 [U] | A Rust driver opens the Antigravity desktop app on a scratch profile and fans out three agents you can watch. Every CDP method it sends is from a fixed list of twenty, none of which runs JavaScript. It sends only Enter, Escape and Tab, and the record carries the evidence that the app itself was driven. |
 | D21 `d21-agy-app-fanin` | rfml5/4.4 [U] | Fan-in with stop-the-line. One agent goes red, the driver stops the other two after the red and never before, refuses to merge, and the reduction is the same in all six arrival orders. |
 
 ### D18: two agents, one server
 
-- **Agents.** Two roles, each an LLM call with its own system prompt and its own output file, sharing one `apr serve` 0.70.1 process.
+- **Agents.** Two roles, each an LLM call with its own system prompt and its own output file, sharing one `apr serve` process from the 0.70.x series (E1).
   - The **writer** answers four fixed questions `q1..q4` into `out/answers.json`.
   - The **checker** reads each answer and records `accept` or `reject` into `out/verdicts.json`.
 - **Schedules.** Two are run against the same server process:
@@ -50,14 +50,14 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
   1. validates the contract;
   2. judges the golden record (Pass, with the positive control fired);
   3. judges the planted record (exactly the expected five findings);
-  4. runs the 21-row mutant table in `fixtures/mutants.json`. Each row is an RFC 6902 JSON Patch of the golden record:
-     - 16 **kill** rows must each be rejected *purely*: exit 1, the exact finding count, and every finding naming the intended focus node, shape and SHACL component;
-     - 5 **survive** rows must each pass. Each is a defect the shapes cannot see, and the row names the Rust assert that catches it;
+  4. runs the 23-row mutant table in `fixtures/mutants.json`. Each row is an RFC 6902 JSON Patch of the golden record:
+     - 17 **kill** rows must each be rejected *purely*: exit 1, the exact finding count, every finding naming the intended focus node, shape and SHACL component, and the findings naming exactly the row's `properties`;
+     - 6 **survive** rows must each pass. Each is a defect the shapes cannot see, and the row names the Rust assert that catches it;
   5. shows the A-box is tamper-evident through `pv extract spec --check`;
   6. shows the engine passes its own W3C conformance cases (19/19).
 - **What it claims** (`spec/d19-run-v1.yaml`):
-  - `every_mutant_killed`: all 16 kill rows are rejected purely.
-  - `survivors_documented`: all 5 survive rows pass, so the list of what the shapes cannot see is current.
+  - `every_mutant_killed`: all 17 kill rows are rejected purely.
+  - `survivors_documented`: all 6 survive rows pass, so the list of what the shapes cannot see is current.
   - `components_covered`: the kills cover all seven components d18-run-v1 uses: `in`, `datatype`, `pattern`, `lessThanOrEquals`, `minCount`, `maxCount` and `closed`.
   - `golden_silent`: the golden record raises nothing.
   - `abox_tamper_evident`: an edited record is detected.
@@ -72,7 +72,7 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
   3. captures three screenshots: before the fan-out, fanned out, and all done. They must be distinct and non-blank.
 - **What it claims** (`spec/d20-run-v1.yaml`). Each agent is a named property set (`agent_N_task`, `agent_N_state`, `agent_N_files`), so every claim about agent N constrains agent N's own properties:
   - `fan_out`: each agent ran its own fixture task and reached done.
-  - `app_driven`: the record's `app_evidence` holds `Accessibility.getFullAXTree`, `Input.dispatchMouseEvent` and `Input.insertText`, computed from the driver's tally of sent frames. A CLI fallback sends none of the three.
+  - `app_driven`: the record's `app_evidence` holds all five of `Accessibility.getFullAXTree`, `DOM.getBoxModel`, `Input.dispatchMouseEvent`, `Input.insertText` and `Target.setDiscoverTargets`, computed from the driver's tally of sent frames, and every listed method has a count of at least 1. A CLI fallback sends none of the five.
   - `disjoint_workspaces`: every file of agent N is under `ws/agent-N/`, and `stray_writes = 0`.
   - `no_js`: every method sent is in ALLOW, every key sent is Enter, Escape or Tab, and `devtools_targets_opened = 0`.
   - `operator_untouched`: the operator's own app profile is never opened or modified.
@@ -98,7 +98,7 @@ Each fact was measured on the build named. Anything not in this list is **[U]** 
   - Two concurrent clients on one resident server are queued: the pipelined schedule was about 5 % faster than sequential.
   - Outputs were byte-identical across the two schedules.
   - Model: Qwen3.5-4B-Q4_K_M, sha256 `00fe7986…a4`. The full digest is in D18's golden fixture and manifest.
-  - The course machine's declared `apr` is **0.69.3**, not 0.70.1. This is escalation E1.
+  - The course machine's declared `apr` was **0.69.3** when this was measured. E1 is now resolved: the course machine must run a 0.70.x `apr` (§7).
 - **M2: pv 0.70.1, `pv lint <spec-dir> --gate shapes --format json`.**
   - The entity is declared as `entity: {type: json, ref: receipt.json}` together with a `vocabulary` (`prefix`, `root_class`, `nested: {key: Class}`).
     - Nested-in-nested works, `nested: {}` is accepted, and several keys may map to one class.
@@ -109,10 +109,16 @@ Each fact was measured on the build named. Anything not in this list is **[U]** 
     - `minCount`/`maxCount` (including `maxCount: 0`);
     - `lessThanOrEquals` on strings and integers; applied in both directions it gives equality;
     - `closed` with `ignoredProperties: [rdf:type]`.
-  - **Refused by pv** (so never used here): `equals`, `disjoint`, `and/or/not/xone`, `sparql`, `minInclusive`, `hasValue` (exit 3), complex property paths. D20's and D21's app evidence therefore uses `in` plus `minCount: 3` where `hasValue` would have been the natural choice.
+  - **Refused by pv** (so never used here): `equals`, `disjoint`, `and/or/not/xone`, `sparql`, `minInclusive`, `hasValue` (exit 3), complex property paths. D20's and D21's app evidence therefore uses `in` plus `minCount: 5` where `hasValue` would have been the natural choice.
   - **Exit codes:** 0 Pass, 1 reject, 2 decline, 3 malformed.
   - **JSON fields used here:** `verdict`, `violations` (a count), `findings[].message`, `pc_shape`, `plant_violations`, `focus_nodes_n`, `shapes_n`, `armed_shapes`, `not_armed_shapes`, `unarmed_violations`, `w3c_cases_passed`, `w3c_cases_n`.
   - **Finding message shape:** ``<focus> violates shape `<id>` (<component>): …``. A finding carries this message only, with no structured component field, so every check in this spec matches the message prefix.
+  - **Measured in round 2**, each by a fixture or a mutant row that would fail if it stopped holding:
+    - a `datatype` finding names the offending value but **no property** (see m04 and m05 in M7);
+    - `lessThanOrEquals` between an integer and a string **fires** (it is not silently skipped), and between two strings it compares **lexically**, so every timing pair here is `xsd:integer` on both sides;
+    - a JSON key spelled `rdf:type` is **not** covered by `ignoredProperties: [rdf:type]`: `closed` rejects it (mutant m17);
+    - `pattern` works on integers. Its finding prints the value with **no datatype**, e.g. ``ont:d20/…cdp_methods.8 … count: "0" does not match /^[1-9][0-9]*$/``;
+    - `LC_ALL=C sort` orders positional nodes as text, so `cdp_methods.10` sorts before `cdp_methods.8`. Every `.expect` is sorted with `LC_ALL=C`, and the gate sorts the same way.
 - **M3: literal collapse, and positional objects.**
   - Repeated equal scalar values become one RDF literal. So `maxCount: 1` on a repeated property proves that every value is equal, and `minCount: N` counts *distinct* values: three screenshots of which two are identical give "has 2 value(s)".
   - D21's `order_free` rests on both. Six equal digests pass `maxCount: 1` and one differing digest fails it; `minCount: 6` on `reduce_orders` needs six distinct orders.
@@ -136,16 +142,19 @@ Each fact was measured on the build named. Anything not in this list is **[U]** 
   - D21 carries the identical list.
 - **M7: D19's mutant matrix**, run by `xtask/proofs/verify-mutants.sh` against D18's contract.
   - The identity (the unpatched golden record) passes: exit 0, Pass, no findings.
-  - **16/16 kill rows are killed purely.** Each exits 1 with the exact finding count, and every finding starts ``<node><focus> violates shape `<target>` (<component>)``. A row that also trips a second constraint, or trips the right one on the wrong node, is reported as impure and fails.
-    - m04, m05 and m06 raise two findings each, by design and all of one component. Each patches both members of a pair (both start ticks, both of `q2`'s sequential times, both digests), so the pair's `lessThanOrEquals` still holds and only `datatype` or `pattern` fires.
+  - **17/17 kill rows are killed purely.** Each exits 1 with the exact finding count, the findings name exactly the row's `properties`, and every finding starts ``<node><focus> violates shape `<target>` (<component>)``. A row that also trips a second constraint, or trips the right one on the wrong node, is reported as impure and fails.
+    - m04 and m06 raise two findings each and m05 four, by design and all of one component. Each patches every member of its pairs (both start ticks; all four of `q2`'s sequential times, writer and checker, start and end; both digests) to strings, so every `lessThanOrEquals` among them still holds as a string comparison and only `datatype` or `pattern` fires.
+    - A `datatype` finding names no property, so m04's and m05's `properties` are `-`, one per finding: those rows are held to focus node, shape, component and count.
     - Every component is killed on the run node, and every component except `pattern` (which the item shape does not use) is also killed on an item node.
-  - **5/5 survive rows pass** with exit 0 and no findings. They are what the shapes cannot see, each caught in Rust:
+  - **6/6 survive rows pass** with exit 0 and no findings. They are what the shapes cannot see, each caught in Rust:
     - s01, both digests are the sha256 of the empty string: the program recomputes sha256 over the output files after each schedule.
     - s02, both pids are 1: the pid is read from the child handle, and `/proc/<pid>/exe` must resolve to the pinned `apr`.
     - s03, one decision flipped: decisions are parsed from `out/verdicts.json`, which both digests cover.
     - s04, one item shifted 100 s later so that q2 follows q3: every timestamp comes from one monotonic clock at the sink, items increase within a schedule, and each is at most that schedule's elapsed time.
     - s05, `writer_files` lists one path twice: an equivalent mutant, since RDF values are a set. Each sink opens its file with `create_new`, so a second open of one path is an error.
-  - Result: **killed and named 16/16, survived 5/5.**
+    - s06, a pipelined schedule that never overlapped: each writer starts only after the previous item's checker ended, so it is a sequential run under the pipelined label, and every per-item chain is still ordered. The program asserts that for i in 1..3 the writer of q(i+1) started while the checker of q(i) was still running.
+    - m17 is the kill row behind the round-2 finding that a JSON key spelled `rdf:type` might pass `ignoredProperties: [rdf:type]`: it does not. `closed` rejects it on the run node, naming `rdf:type`.
+  - Result: **killed and named 17/17, survived 6/6.**
 - **M8: relations only between named properties of one node.** pv's `lessThanOrEquals` compares two properties of the same focus node, and pv has no arithmetic. So every timing or identity claim here is written as a relation between two *named* properties of one node: `q1..q4` in D18, `agent_N_*` in D20, `stop_agent_N_*` in D21. A repeated path carrying a second `lessThanOrEquals` is checked independently; this was measured on D21's `red_seen_ms`, which is bounded by both stops.
 
 The twenty CDP methods (ALLOW), exact match, anchored:
@@ -166,11 +175,11 @@ No `Runtime.*`, no `Debugger.*`, no `Page.navigate`, no `Page.addScriptToEvaluat
 | Path | D18 | D19 | D20 | D21 |
 |---|---|---|---|---|
 | `spec/dNN-run-v1.yaml` (contract: entity, vocabulary, shapes, equations, invariants, falsifiers) | 2 shapes | 1 shape | 2 shapes | 2 shapes |
-| `fixtures/receipt.golden.json` passes: `pv lint` exit 0, Pass, `pc_shape` fired, `not_armed_shapes` empty, `unarmed_violations` 0, W3C 19/19 | focus 5 | focus 1 | focus 9 | focus 10 |
-| the golden run's `plant_violations` (pv's own positive control) | 21 | 17 | 21 | 24 |
-| `fixtures/receipt.planted.json` is rejected with exit 1 | 5 findings | 5 findings | 8 findings | 9 findings |
-| `fixtures/receipt.planted.expect`: the sorted finding messages, which must match byte for byte | 5 lines | 5 lines | 8 lines | 9 lines |
-| `fixtures/mutants.json` (RFC 6902) | — | 21 rows: 16 kill, 5 survive | — | — |
+| `fixtures/receipt.golden.json` passes: `pv lint` exit 0, Pass, `pc_shape` fired, `not_armed_shapes` empty, `unarmed_violations` 0, W3C 19/19 | focus 5 | focus 1 | focus 10 | focus 10 |
+| the golden run's `plant_violations` (pv's own positive control) | 25 | 17 | 21 | 24 |
+| `fixtures/receipt.planted.json` is rejected with exit 1 | 5 findings | 5 findings | 9 findings | 13 findings |
+| `fixtures/receipt.planted.expect`: the sorted finding messages (`LC_ALL=C`), which must match byte for byte | 5 lines | 5 lines | 9 lines | 13 lines |
+| `fixtures/mutants.json` (RFC 6902) | — | 23 rows: 17 kill, 6 survive | — | — |
 
 **These fixtures test the contracts, not a run.** They are hand-built records and are not evidence that any demo ran. Only a live run judged by the harness is (§4).
 
@@ -191,14 +200,15 @@ Each planted record breaks several claims at once, and every finding maps to exa
   - the operator profile was touched, and agent 2 never reached done (`in`);
   - agent 1 also wrote `ws/agent-2/result.md` (`pattern`);
   - F12 was sent (`in` on `keys_sent`);
-  - the app evidence lacks `Input.insertText`, and two of the three screenshots are identical (`minCount: 3`, twice);
+  - the app evidence lacks `Input.insertText` (`minCount: 5`), and two of the three screenshots are identical (`minCount: 3`);
+  - `Page.captureScreenshot` is listed with a count of 0 (`pattern` on that method node's `count`);
   - `Runtime.evaluate` and `Page.addScriptToEvaluateOnNewDocument` were sent, each named by its own `cdp_methods` node (`pattern`).
 - **D21:**
-  - agent-1's stop was sent before the red was seen (`lessThanOrEquals`);
+  - agent-1's and agent-2's stops were both sent before the red was seen, and each agent's stopped state was read before its stop was sent (`lessThanOrEquals`, four times, each naming the earlier property);
   - agent-3, which had already finished, is among the stopped agents (`in`);
   - the run merged anyway, and the refusal names agent-2 (`in`, twice);
   - one order's digest differs (`maxCount`), and one order ran twice, so only five distinct orders ran (`minCount`);
-  - F12 was sent (`in`), and the app evidence lacks `Input.insertText` (`minCount`);
+  - F12 was sent (`in`), the app evidence lacks `Input.insertText` (`minCount: 5`), and `Page.captureScreenshot` is listed with a count of 0 (`pattern`);
   - `Runtime.callFunctionOn` was sent, named by its method node (`pattern`).
 
 ## 4. Harness work (shared, lands first)
@@ -213,7 +223,9 @@ The changes:
 1. **Exact pins for the new tools.**
    - `DemoManifest` gains `pv` and `antigravity` (both default `"none"`) and `antigravity_asar_sha256`.
    - `verify_demo` applies `pin::parse_exact` to each tool a demo uses, as it already does for `apr` and `agy`; floors are refused.
-   - D18 pins `apr = "=0.70.1"` and `pv = "=0.70.1"`. D19 pins `pv = "=0.70.1"`. D20 and D21 pin `antigravity = "=2.8.1"`, the asar sha and `pv = "=0.70.1"`.
+   - D18 pins `apr` to the **series** 0.70.x (E1) and `pv = "=0.70.1"` exactly.
+   - Measured: `pin::parse_exact` accepts only `"=X.Y.Z"` today. This phase adds one series form, `apr = "0.70.*"` → `SeriesPin { major: 0, minor: 70 }`. It accepts any `0.70.<n>` and refuses 0.69.x, 0.71.x, 0.701.x and any suffix such as `-dirty`. A series is not a floor: the upper bound is the minor version. The Receipt records `apr`'s full version string and the sha256 of the binary that ran, so a patch change is visible even though it is admitted. pv stays exact, because the planted `.expect` bytes depend on pv's message format.
+   - D19 pins `pv = "=0.70.1"`. D20 and D21 pin `antigravity = "=2.8.1"`, the asar sha and `pv = "=0.70.1"`.
 2. **Preflight** checks the installed `pv --version`, Antigravity's version and the asar sha256 against the pins.
    - A mismatch is `NotRun(VersionMismatch {…})`.
    - A changed asar under the same version string is a new reason, `AppMismatch { pinned_sha, found_sha }`; both seats that answered Q1 agree (§7). Auto-update makes this the likely failure.
@@ -240,9 +252,9 @@ The changes:
    - the golden record must be Green;
    - the planted record must be Red, with its sorted messages byte-equal to `receipt.planted.expect`;
    - D19 additionally runs the mutant matrix (§5.2).
-   - D20 and D21 additionally check `app_evidence ⊆ {m.method : m ∈ cdp_methods}`. pv cannot relate one property's values to another node's, so this cross-check is Rust's (M8).
+   - D20 and D21 additionally check `app_evidence = EVIDENCE ∩ {m.method : m ∈ cdp_methods}`. With the shapes' `minCount: 5` this means each of the five evidence methods was sent at least once. pv cannot relate one property's values to another node's, so this cross-check is Rust's (M8).
    - `xtask verify --only <id>` is added so each build phase has its own acceptance command.
-   - The arm **ports** the two committed proof scripts, `xtask/proofs/spec-proofs.sh` and `xtask/proofs/verify-mutants.sh`, into Rust. Each of the scripts' eight `--self-test` sabotages becomes a test that must see its named check refuse. Once the port is green, ph2 deletes both scripts, so no gate is kept in two places.
+   - The arm **ports** the two committed proof scripts, `xtask/proofs/spec-proofs.sh` and `xtask/proofs/verify-mutants.sh`, into Rust. Each of the scripts' sixteen `--self-test` sabotages becomes a test that must see exactly its named set of checks refuse, and, for the four mutant-table rows, its named reason. Once the port is green, ph2 deletes both scripts, so no gate is kept in two places.
 6. **CI installs pv.** `aprender-contracts-cli` 0.70.1 is published on crates.io (MIT).
    - The `course-5-demos` job gains `cargo install aprender-contracts-cli --version 0.70.1 --locked`, cached the same way as `bashrs`.
    - The job's existing rule holds: *a missing tool fails, never skips.*
@@ -258,7 +270,7 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 
 **Steps:**
 
-1. Preflight: `apr` =0.70.1, model sha, GPU lock.
+1. Preflight: `apr` in the 0.70 series (`SeriesPin`, with its version string and binary sha256 recorded), model sha, GPU lock.
 2. `ServeGuard` spawns one `apr serve`.
 3. Run the sequential schedule, then the pipelined one, on the same process. Use temperature 0 and a fixed seed.
 4. Recompute both digests from the bytes on disk.
@@ -282,8 +294,8 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 1. `pv validate` on D18's contract.
 2. Judge the golden record (Green), then the planted record (Red, with output equal to `.expect`).
 3. Apply each row of `fixtures/mutants.json` with an RFC 6902 subset of `add`, `remove` and `replace` over `serde_json` pointers, and judge it:
-   - **each of the 16 kill rows must be killed purely:** exit 1, exactly the row's stated finding count, and every message beginning with exactly ``ont:d18/d18-run-v1<node> violates shape `<target>` (<component>)``, the row's own node, shape and component;
-   - **each of the 5 survive rows must pass:** exit 0, Pass, no findings. A survivor that starts failing means the list of what the shapes cannot see is stale.
+   - **each of the 17 kill rows must be killed purely:** exit 1, exactly the row's stated finding count, the findings naming exactly the row's `properties`, and every message beginning with exactly ``ont:d18/d18-run-v1<node> violates shape `<target>` (<component>)``, the row's own node, shape and component;
+   - **each of the 6 survive rows must pass:** exit 0, Pass, no findings. A survivor that starts failing means the list of what the shapes cannot see is stale.
 4. Run `pv extract spec`, then `--check` (0), then a one-byte record edit, then `--check` again (1).
 5. Write D19's own record, judge it with D19's shapes, and write the Receipt.
 
@@ -343,6 +355,16 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 6. Tear down the process group, then run the leak sweep.
 7. Write the record, judge it, and write the Receipt.
 
+**Rust asserts beyond the shapes.** The shapes see only the record. Each line below is a claim the record cannot carry by itself, so the program asserts it before writing the record:
+
+- **`app_evidence = EVIDENCE ∩ {m.method}` against the socket tally**, not against the record. The shapes bound `app_evidence` to the five and require all five, but cannot relate it to the `cdp_methods` nodes.
+- **`Target.setDiscoverTargets` is the first frame sent on the browser connection**, so no `Target.targetCreated` can precede the subscription and `devtools_targets_opened` counts every DevTools target.
+- **Every `count` in `cdp_methods` is the tally's own number**, written from the one write function. The shapes refuse a count of 0, but only the tally can say a count is true.
+- **Each screenshot is non-blank** (more than one distinct pixel value). The shapes see digests, not pixels.
+- **`Input.insertText` follows a focus check**, as above.
+- **`agent_N_files` equals the filesystem diff of `ws/agent-N/`**, and the agent view's own report of what it edited agrees with it.
+- **The isolation list above**: the driver's own port only, the operator listing and canary unchanged, and the leak sweep empty.
+
 ### 5.4 D21 (after D20; reuses `agy-cdp`)
 
 **Steps:**
@@ -364,13 +386,17 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
   - the samples committed beside the demo.
 
   The long step must last at least 3 × (red + L + UI delay), so that agents 1 and 2 are reliably still running at red. L is re-measured whenever the pinned asar changes.
+
+  **Measuring L is ph6's entry gate.** ph6 records no take until the samples are committed and L is computed from them. Taking the samples drives the app, so it needs a scratch profile the operator has signed in to. That request goes through the cop. Until it is answered, L, and with it the live D21 take, is `NotRun`, never estimated.
+- **`stopped_agents = running_at_red`.** The shapes bound each set to {agent-1, agent-2} and require two values in each, but cannot equate two value sets, so the program asserts the equality.
+- **Each stop is that agent's own control, and the stop is read back.** Each `stop_agent_N_sent_ms` is the moment of a click on agent N's own stop control: its accessibility node, then `DOM.getBoxModel`, then `Input.dispatchMouseEvent` at the box centre. `stop_agent_N_stopped_ms` is the moment the tree first reports agent N stopped. The shapes order the three moments (FALSIFY-D21-001 and -007); only the program knows which node was clicked.
 - **No writes after the stop, judged by content, not by time.** The two workspace snapshots compare path, size and sha256, so no mtime granularity or slack enters the check.
 - **The reducer is a pure function** of the multiset of results: no clock, no I/O, `BTreeMap` order. Its unit tests:
   - all six permutations, on several different result sets, give one digest per set;
   - **sensitivity:** changing one result changes the digest. A constant reducer, run as a negative control, must fail this test. That proves the test can fail; without it, a reducer that ignores its input would pass as order-free.
   - with several red results, the refusal names the lowest red id in every arrival order.
 - **`refusal_names` is the lowest red agent id**, and `merged` is false whenever any result is red.
-- **`app_evidence ⊆ cdp_methods`**, as in D20 (§4, item 5).
+- **`app_evidence = EVIDENCE ∩ {m.method}` against the tally, and `Target.setDiscoverTargets` first on the browser connection**, as in D20 (§5.3).
 
 ## 6. Phase plan
 
@@ -382,28 +408,30 @@ The plan has seven phases. A **lane** is one independent reviewer in the quorum;
 | ph2 harness | `demo-kit/**`, `xtask/**`, `Cargo.toml`, `Cargo.lock`, `.github/workflows/ci.yml`, plus manifests and skeleton bins for d18–d21 and `agy-cdp`. **All** shared-file edits land here. | `cargo test -p demo-kit -p xtask && cargo build --workspace && cargo run -q -p xtask -- verify` |
 | ph3 D18 | `d18-two-agents-one-server/**` | `cargo test -p d18-two-agents-one-server && cargo run -q -p xtask -- verify --only d18-two-agents-one-server`, then live run L3 Green |
 | ph4 agy-cdp + D20 | `agy-cdp/**`, `d20-agy-app-fanout/**` | the entry gate below first; then `cargo test -p agy-cdp -p d20-agy-app-fanout && cargo run -q -p xtask -- verify --only d20-agy-app-fanout`, then live run L4 Green |
-| ph5 D19 | `d19-workflow-ontology/**` | `cargo test -p d19-workflow-ontology && cargo run -q -p xtask -- verify --only d19-workflow-ontology && cargo run -q -p d19-workflow-ontology` (Green: pv is the only tool) |
+| ph5 D19 | `d19-workflow-ontology/**` | `cargo test -p d19-workflow-ontology && cargo run -q -p xtask -- verify --only d19-workflow-ontology`, then live run L5 Green (pv is its only tool, so L5 needs no GPU and no sign-in) |
 | ph6 D21 | `d21-agy-app-fanin/**` | `cargo test -p d21-agy-app-fanin && cargo run -q -p xtask -- verify --only d21-agy-app-fanin`, then live run L6 Green |
 | ph7 pre-PR | the whole diff | 3-lane diff quorum, `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo run -q -p xtask -- verify` |
 
 **The live runs.** Each writes its Receipt under `$RFML5_RECEIPTS/<id>/<run_id>/`, and only a Green verdict passes. `NotRun` is never Green: a missing tool, a pin mismatch or a missing sign-in leaves the phase open, not done.
 
-- **L3 (D18):** `RFML5_MODELS=<dir> RFML5_DECLARED_APR=<apr 0.70.1> RFML5_RECEIPTS=<dir> cargo run -q --release -p d18-two-agents-one-server`
+- **L3 (D18):** `RFML5_MODELS=<dir> RFML5_DECLARED_APR=<apr 0.70.x> RFML5_RECEIPTS=<dir> cargo run -q --release -p d18-two-agents-one-server`
 - **L4 (D20):** `RFML5_RECEIPTS=<dir> cargo run -q --release -p d20-agy-app-fanout`
+- **L5 (D19):** `RFML5_RECEIPTS=<dir> cargo run -q --release -p d19-workflow-ontology`
 - **L6 (D21):** `RFML5_RECEIPTS=<dir> cargo run -q --release -p d21-agy-app-fanin`
 
-D20 and D21 stay `NotRun` until the operator has signed in on the demos' own profile (E2).
+L4, L6 and the measurement of L (§5.4) stay `NotRun` until the operator has signed in on the demos' own profile (E2). That request goes through the cop; nothing here estimates a value it could not measure.
 
 **Ordering rules:**
 
 - **D18's contract is frozen at the ph1 commit.** ph5 judges it, so a change to `d18-run-v1.yaml` during ph3 stops ph3, re-runs `A_1`, and goes back through the quorum.
 - **Q2 (§7) is settled before ph2 starts,** because ph2 writes `agy-cdp`'s manifest.
+- **ph6 starts after ph4 is Green.** D21 drives the app through `agy-cdp`, which ph4 builds, and uses ph4's committed role/name map and demo profile. ph6 therefore never runs in parallel with ph4.
 
 **ph4 entry gate (E3).** Before any D20 code is written, on a scratch profile:
 
 1. Dump the hub's accessibility tree.
 2. Show that five controls are reachable through the tree plus input events: new agent, the task box, send, an agent's state, and stop.
-3. Measure whether F1 and F12 open DevTools on 2.8.1, counting `Target.targetCreated` events. The key is pressed through the window system, on the scratch instance's own display, because `agy-cdp` cannot express either key.
+3. Measure whether F1 and F12 open DevTools on 2.8.1, counting `Target.targetCreated` events. The key is pressed with `xdotool` 3.20160805.1 (pinned; the run records `xdotool version`) on the scratch instance's own `DISPLAY`, never the operator's, because `agy-cdp` cannot express either key.
 4. Commit the role/name map as a fixture.
 
 If any step fails, ph4 and ph6 stop and escalate.
@@ -412,7 +440,7 @@ If any step fails, ph4 and ph6 stop and escalate.
 
 ```bash
 bash course-5/demos/xtask/proofs/spec-proofs.sh course-5/demos               # exactly 17 checks, 0 failing
-bash course-5/demos/xtask/proofs/spec-proofs.sh --self-test course-5/demos   # 8/8 sabotages, each refused by its own check
+bash course-5/demos/xtask/proofs/spec-proofs.sh --self-test course-5/demos   # 16/16 sabotages, each refused exactly as its row states
 ```
 
 The 17 checks:
@@ -423,11 +451,16 @@ The 17 checks:
 | the golden record is Green | 4 |
 | the planted record exits 1, with sorted findings byte-equal to `.expect` | 4 |
 | D19's record agrees with D18's `.expect` and with `mutants.json` | 4 |
-| the mutant table (`verify-mutants.sh`): 16/16 killed and named, 5/5 survived | 1 |
+| the mutant table (`verify-mutants.sh`): 17/17 killed and named, 6/6 survived | 1 |
 
 - Every judge run is materialised in a fresh directory outside any git work tree (M4).
 - Any other number of checks fails: a gate over a different set of checks is not this gate.
-- `--self-test` proves the gate can fail. It plants eight sabotages, one per fresh copy, and each must be refused by the check it targets.
+- `--self-test` proves the gate can fail. It plants sixteen sabotages, each in a fresh copy of the demos tree. A row reads `name|exit|want[|reason]`:
+  - for exit 1, `want` is the exact set of failing checks, sorted with `LC_ALL=C` and joined with `;`. A sabotage that also trips a check it does not name fails the self-test;
+  - for exit 2, `want` is the exact last line. The one such row runs an unpinned pv (0.70.2), which is refused as not measured;
+  - `reason`, on the four mutant-table rows, is a fixed string the output must contain, so the table must fail for the stated reason, not merely fail;
+  - a row missing its exit, its `want`, or a declared reason is `BAD-ROW`, and fails the self-test.
+- The self-test was falsified in turn. Five defects were planted in a scratch copy: two rows with the named set narrowed, two rows with `want` or the reason emptied, and the empty-output guard reverted (`jq -nr 'input | …'` back to `jq -r`). It reported 11/16 with exit 1, and the five failing rows were exactly the five planted defects. The last one shows the guard is load-bearing: without it, an empty pv output is not caught as such.
 - ph2 ports both scripts into `xtask verify` and deletes them (§4, item 5).
 
 ## 7. Escalations and open questions
@@ -447,10 +480,11 @@ Most of the findings are addressed in this revision:
 - D21's reduce check, which one arrival order could pass;
 - D21's stops, which allowed one stopped agent where both must stop;
 - the uppercase-digest mutant, which also broke `lessThanOrEquals`, so no mutant killed `pattern` alone;
-- live runs with no command;
-- D19 being too dense for one act (E4).
+- live runs with no command (completed in round 2, which found D19's L5 missing).
 
-**Added after round 1, so not yet reviewed (round 2 must cover them):**
+D19's density (E4) is not addressed here: it is a proposal waiting on the outline owner.
+
+**Added after round 1, and reviewed by round 2:**
 
 - **D20:**
   - `devtools_targets_opened`;
@@ -461,13 +495,42 @@ Most of the findings are addressed in this revision:
   - `app_evidence` and `keys_sent`, with the `app_driven` equation, `D21-INV-006` and `FALSIFY-D21-006`.
 - **The committed `A_1`:**
   - the two proof scripts;
-  - the self-test with its eight sabotages.
+  - the self-test, then with eight sabotages, now sixteen.
+
+**Quorum round 2** reviewed the revision above, with the same three models:
+
+| Seat | Model | Verdict |
+|---|---|---|
+| 1 | claude-sonnet-5-5-medium | FAIL, with fifteen findings |
+| 2 | gemini-3.1-pro-high | FAIL: the round-1 "live runs with no command" fix lacked D19's live run |
+| 3 | gpt-oss-120b-medium | First run BLIND: the provider answered 503 "No capacity available", so the seat returned no verdict and none is counted. The retry answered PASS, with no structured output. It said D18 and D19 are ready and that D20 and D21 need Rust asserts beyond the shapes, and it recommended the E4 split. The retry also wrote an analysis file into its own review clone although it ran read-only; the file was kept as evidence and is not part of this change. |
+
+What round 2 found, and what changed:
+
+- **The gate could pass on nothing.** An empty pv output with exit 0 left the golden check Green. The check now reads pv's output through a guard that treats empty output as a failure, and a sabotage plants exactly that.
+- **The self-test proved too little.** A sabotage passed if its named check failed, whatever else failed with it. Each row now names the exact set of failing checks, and the four mutant-table rows also name the reason.
+- **Missing sabotages:** empty pv output, a D20 golden without `Input.insertText`, a D21 golden that sent F12, a deleted contract, and an empty `.expect`. All are now rows.
+- **Kill purity ignored the property.** A mutant killed by a different property of the same component counted as killed. Every kill row now names its `properties`, and `verify-mutants.sh` reports `WRONG-PROPERTY` when the findings name others.
+- **D18's overlap could not be re-checked from the record,** which carried each item's writer end and checker start only. It now carries all four times per item (`pipe_writer_start_ms`, `pipe_writer_end_ms`, `pipe_checker_start_ms`, `pipe_checker_end_ms`), and survivor s06, a pipelined run that never overlapped, names the Rust assert that refuses it.
+- **D21's timing relations had no killing mutant.** The planted D21 record now carries both stops sent before red, and each stopped state read before its stop was sent.
+- **`app_evidence` and the CDP tally were unrelated to pv.** `Target.setDiscoverTargets` joins the evidence set, every method count must match `^[1-9][0-9]*$`, and §5.3 lists the Rust asserts that tie `app_evidence` to the driver's own tally.
+- **§5.3 and §5.4 had no list of Rust asserts.** Both now do, covering non-blank screenshots, the filesystem diff, each stop being that agent's own control read back from the tree, and `stopped_agents = running_at_red`.
+- **No phase owned L.** Measuring L is now ph6's entry gate, and stays `NotRun` until the operator signs in.
+- **Hidden ordering.** ph6 now runs after ph4, and the ph4 key press names its tool and display.
+- **E4 was listed as addressed while still open.** It is now listed as open.
+- **D19 had no live run.** L5 is added (seat 2).
+
+Two round-2 findings are recorded rather than changed:
+
+- s01 and s03 survive, although the model, seed and temperature are pinned, so `in` could in principle pin their digests and decisions. Both depend on the inference build, and the owner's ruling (E1) leaves the `apr` patch version free. A shape pinning them would refuse a correct run on the next 0.70.x, so they stay survivors, each with its reason in `mutants.json`.
+- `closed` with `ignoredProperties: [rdf:type]` has no row showing the ignore is not a wider escape hatch. Mutant m17 adds a JSON key literally named `rdf:type` and is refused by `closed` (M2), which is the case the ignore could have let through.
 
 **Escalations:**
 
-- **E1: `apr` 0.70.1 is not the course machine's declared `apr` (0.69.3).** D18 pins `=0.70.1` and refuses anything else with `NotRun(VersionMismatch)`; the demo never falls back. There are two ways to fix it, and choosing is the owner's call:
-  - seat 1: point `$RFML5_DECLARED_APR` at a pinned 0.70.1 build and record that build's sha256;
-  - seat 2: upgrade the course machine's `apr`.
+- **E1: resolved by the owner.** The ruling, verbatim: "apr version is 0.70.*".
+  - D18's contract pins `apr_version` with `pattern: '^0\.70\.[0-9]+$'`. Measured on pv 0.70.1: the golden record and 0.70.12 pass, while 0.69.3, 0.701.0 and 0.70.1-dirty are each rejected.
+  - The harness pins `apr` as `SeriesPin` 0.70 (§4 item 1) and records the binary's sha256 in the Receipt.
+  - The course machine must therefore run a 0.70.x `apr`. A 0.69.3 install is `NotRun(VersionMismatch)`, and the demo never falls back.
 - **E2: Antigravity quota and auth.** Each D20/D21 take starts three agents and spends the app's agent quota, and quorum lanes draw on the same quota.
   - The demos run on their own profile, with `HOME` and `XDG_*` in scratch (§5.3), and never read a credential store.
   - If a take needs a sign-in, that sign-in is the operator's, and the run is `NotRun` until it is done.
