@@ -3,9 +3,18 @@
 //! `tungstenite`; `xtask verify` refuses it anywhere else, and refuses
 //! sockets, processes and file access outside this crate's two named modules.
 //!
-//! Skeleton: the transport, launcher and method enum land in ph4. What ships
-//! now is the embedded role/name map, committed as the unmeasured sentinel
-//! until `xtask promote-fixture e3-probe` replaces it.
+//! Modules: `methods` (the closed ALLOW enum), `transport` (the one socket),
+//! `launch` (the one spawner), `proc_probe` (the one `/proc` reader),
+//! `open_under` (the one file path), `operator_listing` (read_dir and
+//! symlink_metadata only) and `ax` (the control path).
+
+pub mod ax;
+pub mod launch;
+pub mod methods;
+pub mod open_under;
+pub mod operator_listing;
+pub mod proc_probe;
+pub mod transport;
 
 /// The role/name map measured by `e3-probe`, embedded at build time so no
 /// confined bin reads a fixture at run time.

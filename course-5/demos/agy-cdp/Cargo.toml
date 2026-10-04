@@ -15,6 +15,6 @@ path = "src/main.rs"
 
 [dependencies]
 base64.workspace = true
-rustix.workspace = true
+rustix = { workspace = true, features = ["process"] }
 serde_json.workspace = true
 tungstenite.workspace = true
