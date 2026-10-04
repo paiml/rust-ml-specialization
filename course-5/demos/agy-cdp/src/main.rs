@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 
 use agy_cdp::ax::{self, Node, Page};
 use agy_cdp::launch::{self, App, XdotoolKey, Xvfb};
-use agy_cdp::methods::Key;
+use agy_cdp::methods::{Key, Method};
 use agy_cdp::open_under::{self, Roots};
 use agy_cdp::operator_listing;
 use agy_cdp::transport::Conn;
@@ -159,11 +159,8 @@ fn probe_controls(
         record(&mut found, &nodes);
     }
     skip_interstitial(conn, page, &mut found)?;
-    click_control(conn, page, 2)?;
-    std::thread::sleep(Duration::from_secs(1));
-    match ax::insert_text_checked(conn, page, PROBE_PROMPT.trim()) {
-        Ok(()) => ax::press(conn, page, Key::Enter)?,
-        Err(m) => eprintln!("probe prompt not sent: {m}"),
+    if let Err(m) = send_prompt(conn, page) {
+        eprintln!("probe prompt not sent: {m}");
     }
     for i in 1..=10 {
         std::thread::sleep(Duration::from_secs(2));
@@ -314,4 +311,23 @@ fn skip_interstitial(
         std::thread::sleep(Duration::from_secs(2));
     }
     Ok(())
+}
+/// Click the task box, give it DOM focus, and insert the probe prompt only
+/// once the tree reports a focused text box (three tries, 1 s apart).
+fn send_prompt(conn: &mut Conn, page: &Page) -> Result<(), String> {
+    click_control(conn, page, 2)?;
+    let nodes = ax::tree(conn, page)?;
+    let (_, roles, needles) = CONTROLS[2];
+    if let Some(b) = find_control(&nodes, roles, needles).and_then(|n| n.backend) {
+        conn.send(Method::DomFocus { backend_node_id: b }, Some(&page.session))?;
+    }
+    let mut last = String::new();
+    for _ in 0..3 {
+        std::thread::sleep(Duration::from_secs(1));
+        match ax::insert_text_checked(conn, page, PROBE_PROMPT.trim()) {
+            Ok(()) => return ax::press(conn, page, Key::Enter),
+            Err(m) => last = m,
+        }
+    }
+    Err(last)
 }
