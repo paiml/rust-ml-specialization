@@ -213,18 +213,9 @@ fn shapes_arm(root: &Path, dirs: &[PathBuf], only: Option<&str>) -> Shapes {
 
 fn promote_fixture(root: &Path, args: &[String]) -> ExitCode {
     let usage = "usage: xtask promote-fixture <e3-probe|measure-stop-latency> [--check|--replace]";
-    let Some(gate) = args.first().and_then(|g| promote::Gate::parse(g)) else {
+    let Some((gate, mode)) = parse_promote_args(args) else {
         eprintln!("{usage}");
         return ExitCode::from(2);
-    };
-    let mode = match args.get(1).map(String::as_str) {
-        None => promote::Mode::Promote,
-        Some("--check") => promote::Mode::Check,
-        Some("--replace") => promote::Mode::Replace,
-        Some(_) => {
-            eprintln!("{usage}");
-            return ExitCode::from(2);
-        }
     };
     let receipts = match std::env::var_os("RFML5_RECEIPTS") {
         Some(r) => PathBuf::from(r),
@@ -408,5 +399,50 @@ mod d17_falsifier {
             let want = format!("quorum: homogeneous={homo} heterogeneous={hetero}");
             assert!(out.contains(&want), "[{modes}] want `{want}`, got:\n{out}");
         }
+    }
+}
+
+/// One gate name and at most one mode flag, in either order: the spec writes
+/// `promote-fixture --check e3-probe`, the usage line the other way round.
+fn parse_promote_args(args: &[String]) -> Option<(promote::Gate, promote::Mode)> {
+    let (mut gate, mut mode) = (None, None);
+    for a in args {
+        let m = match a.as_str() {
+            "--check" => Some(promote::Mode::Check),
+            "--replace" => Some(promote::Mode::Replace),
+            _ => None,
+        };
+        match (m, &gate, &mode) {
+            (Some(m), _, None) => mode = Some(m),
+            (None, None, _) => gate = Some(promote::Gate::parse(a)?),
+            _ => return None,
+        }
+    }
+    Some((gate?, mode.unwrap_or(promote::Mode::Promote)))
+}
+
+#[cfg(test)]
+mod promote_args_tests {
+    use super::*;
+
+    fn p(a: &[&str]) -> Option<(promote::Gate, promote::Mode)> {
+        parse_promote_args(&a.iter().map(|s| s.to_string()).collect::<Vec<_>>())
+    }
+
+    #[test]
+    fn flag_before_or_after_the_gate() {
+        assert_eq!(
+            p(&["--check", "e3-probe"]).map(|x| x.1),
+            Some(promote::Mode::Check)
+        );
+        assert_eq!(
+            p(&["e3-probe", "--check"]).map(|x| x.1),
+            Some(promote::Mode::Check)
+        );
+        assert_eq!(p(&["e3-probe"]).map(|x| x.1), Some(promote::Mode::Promote));
+        assert!(p(&["--check"]).is_none());
+        assert!(p(&["--check", "--replace", "e3-probe"]).is_none());
+        assert!(p(&["e3-probe", "e3-probe"]).is_none());
+        assert!(p(&["nope", "--check"]).is_none());
     }
 }
