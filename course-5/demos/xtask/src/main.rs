@@ -1,6 +1,7 @@
 //! `cargo run -p xtask -- verify [--only <id>]` — every demo's `demo.toml` parses
 //! and pins exactly (apr may pin a series), its `src/main.rs` carries a
-//! provable contract, and the workspace passes the confinement lints.
+//! provable contract, every demo with a `spec/` passes the pv shapes proofs
+//! (`proofs`, `mutants`), and the workspace passes the confinement lints.
 //! `cargo run -p xtask -- card <demo>` — print the demo's recording card.
 //! `cargo run -p xtask -- promote-fixture <gate> [--check|--replace]` — copy an
 //! entry gate's measurement to its committed fixture.
@@ -8,7 +9,9 @@
 mod card;
 mod confine;
 mod lint;
+mod mutants;
 mod promote;
+mod proofs;
 mod shell;
 
 use demo_kit::{pin, DemoManifest};
@@ -160,15 +163,51 @@ fn verify(root: &Path, only: Option<&str>) -> ExitCode {
         println!("FAIL no demos found: a gate over nothing is not a gate");
         return ExitCode::FAILURE;
     }
+    let shapes = shapes_arm(root, &dirs, only);
     let lints = confine::lint_workspace(root);
     for l in &lints {
         println!("FAIL confine: {l}");
     }
     println!("confine: {} findings", lints.len());
-    if failed == 0 && lints.is_empty() {
-        ExitCode::SUCCESS
-    } else {
-        ExitCode::FAILURE
+    match (failed == 0 && lints.is_empty(), shapes) {
+        (true, Shapes::Held) => ExitCode::SUCCESS,
+        (true, Shapes::Refused) => ExitCode::from(2),
+        _ => ExitCode::FAILURE,
+    }
+}
+
+enum Shapes {
+    Held,
+    Failed,
+    /// Not measured (pv absent or not the pinned version).
+    Refused,
+}
+
+/// The pv shapes proofs over the demos that carry a contract. A demo with a
+/// `spec/` the arm does not know is a failure: it would never be judged.
+fn shapes_arm(root: &Path, dirs: &[PathBuf], only: Option<&str>) -> Shapes {
+    let mut held = true;
+    for d in dirs.iter().filter(|d| d.join("spec").is_dir()) {
+        let name = d.file_name().unwrap_or_default().to_string_lossy();
+        if !proofs::DEMOS.contains(&name.as_ref()) {
+            println!("FAIL {name}: has spec/ but no shapes proofs");
+            held = false;
+        }
+    }
+    let pv: Box<dyn proofs::Pv> = match proofs::RealPv::find() {
+        Some(p) => Box::new(p),
+        None => Box::new(proofs::RealPv(PathBuf::from("pv"))),
+    };
+    let Some(report) = proofs::run(pv.as_ref(), root, only, &std::env::temp_dir()) else {
+        return if held { Shapes::Held } else { Shapes::Failed };
+    };
+    for l in report.lines() {
+        println!("{l}");
+    }
+    match report {
+        proofs::Report::Refused(_) if held => Shapes::Refused,
+        r if r.passed() && held => Shapes::Held,
+        _ => Shapes::Failed,
     }
 }
 
