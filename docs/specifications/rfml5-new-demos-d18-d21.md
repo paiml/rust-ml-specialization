@@ -6,7 +6,7 @@ status: active
 # rfml5 new demos D18–D21: two agents on one server, the workflow as an ontology, and agent fan-out in the Antigravity app
 
 **Ticket:** PMAT-020 (#20), epic #19. **Branch:** `PMAT-020-rfml5-new-demos`.
-**Status:** spec, revised after quorum rounds 1 to 4i (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
+**Status:** spec, revised after quorum rounds 1 to 4j (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
 
 ## 0. Origin
 
@@ -240,9 +240,9 @@ The changes:
    - A changed asar under the same version string is a new reason, `AppMismatch { pinned_sha, found_sha }`; both seats that answered Q1 agree (§7). Auto-update makes this the likely failure.
    - Missing `pv` is `NotRun(MissingTool)`.
 3. **New `shapes` module in demo-kit:** `judge(spec_dir, record_json, run_root) -> ShapesOutcome`. It:
-   - materialises `<run_root>/judge/{spec/*.yaml, receipt.json}`;
+   - materialises `<run_root>/judge-<n>/{spec/*.yaml, receipt.json}` in a fresh directory per call: it is created with `create_dir`, which fails if the name exists, and retried with the next `n`, so parallel phases and repeated calls never share one;
    - **refuses a `run_root` inside any git work tree** (it walks up looking for `.git`), because of M4;
-   - runs `pv lint <run>/judge/spec --gate shapes --format json`.
+   - runs `pv lint <run_root>/judge-<n>/spec --gate shapes --format json`.
 
    How the result maps to a verdict:
 
@@ -289,12 +289,12 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 
 - **Role↔file binding by construction (s05).** Each role writes through its own sink, and the sink registry records every path a sink opened. `writer_files` and `checker_files` come from that registry, never from what an agent reports. Every open is `create_new`, so opening one path twice is an error, not a second entry.
 - **Digests are recomputed (s01):** sha256 over `out/answers.json ‖ out/verdicts.json` after each schedule, and each must equal the recorded digest. A digest an agent reported is never used.
-- **Server identity (s02).** `ServeGuard` reads the pid from the spawned child handle, at spawn and at the end, and `/proc/<pid>/exe` must resolve to the binary preflight pinned (in CI, the `fake-apr-serve` bin). Field 22 of `/proc/<pid>/stat`, the start ticks, is read at both moments, which rules out a respawn that reused the pid number.
+- **Server identity (s02).** `ServeGuard` reads the pid from the spawned child handle, at spawn and at the end, and `/proc/<pid>/exe` must resolve to the binary preflight pinned (in CI, D18's `d18-fake-apr-serve` bin). Field 22 of `/proc/<pid>/stat`, the start ticks, is read at both moments, which rules out a respawn that reused the pid number.
 - **Decisions come from the checker's file (s03).** Each item's `decision` is parsed from `out/verdicts.json`, the one file only the checker's sink wrote, and both digests cover that file.
 - **One clock (s04).** Every timestamp comes from the orchestrator's monotonic clock at the sink, never from an agent. Within a schedule, items are increasing in i, and each is at most that schedule's elapsed time.
 - **`pipelined_overlaps`: the pipelined schedule really overlaps, and the sequential one never does.** This is the one statement of it; §2 M7 (s06) refers here. For at least one i ∈ {1, 2, 3}, the checker's request on q(i) and the writer's request on q(i+1) are both in flight at once: `checker_start(q i) < writer_end(q i+1)` and `writer_start(q i+1) < checker_end(q i)`, on the same clock. In the sequential schedule no two requests overlap. Without this assert, a "pipelined" run that was secretly sequential would make `schedule_independence` vacuous.
 
-**CI:** the full flow runs against the existing fake server. Cargo sets `CARGO_BIN_EXE_<name>` only for bins of the package under test, so ph2 moves the fake's body into a `demo_kit::fake_serve::run()` library function, and each demo that tests against it, D18 first, carries its own two-line `src/bin/fake_apr_serve.rs` calling it, declared as `[[bin]] name = "fake-apr-serve"` exactly as demo-kit declares it, because Cargo would otherwise name the bin after the file stem and set `CARGO_BIN_EXE_fake_apr_serve`. `env!("CARGO_BIN_EXE_fake-apr-serve")` then resolves inside that demo's own package and target directory, so `cargo test -p d18-two-agents-one-server` exercises roles, causality, digests and the shapes judge without a GPU. The live run is the recording take.
+**CI:** the full flow runs against the existing fake server. Cargo sets `CARGO_BIN_EXE_<name>` only for bins of the package under test, so ph2 moves the fake's body into a `demo_kit::fake_serve::run()` library function, and each demo that tests against it, D18 first, carries its own two-line `src/bin/fake_apr_serve.rs` calling it, declared as `[[bin]] name = "d18-fake-apr-serve"`. The name is explicit because Cargo would otherwise take the file stem, and distinct from demo-kit's `fake-apr-serve` because two bins of one name in a workspace collide in the shared output directory. `env!("CARGO_BIN_EXE_d18-fake-apr-serve")` then resolves inside that demo's own package and target directory, so `cargo test -p d18-two-agents-one-server` exercises roles, causality, digests and the shapes judge without a GPU. The live run is the recording take.
 
 ### 5.2 D19 (`pv` only)
 
@@ -340,7 +340,7 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 
 - **Keys are a closed enum** of `Enter`, `Escape` and `Tab`. It has no modifier field and no F-keys, so neither a chord nor F12 can be expressed. The record's `keys_sent` is tallied at the socket, and the shapes refuse any other key.
 - **Text is inserted only after a focus check:** `Input.insertText` is sent only when the accessibility tree confirms the focused node is a text box inside the agent view.
-- **DevTools targets are counted, not sampled.** The driver calls `Target.setDiscoverTargets` as soon as it attaches and counts every `Target.targetCreated` event whose type or URL is DevTools. That count is `devtools_targets_opened`, and the shapes require it to be 0. Closing the connection cannot drop an event uncounted. Before closing, the driver sends `Target.getTargets` and reads every event until that reply arrives. It then counts DevTools targets in the reply as well, so a target whose `Target.targetCreated` was still in flight is either counted or listed in the snapshot. A snapshot that lists a DevTools target fails the run. The snapshot is asserted, not assumed. The tally's last frame on the browser connection must be that `Target.getTargets`, and its reply must have been received and parsed before the socket closed. A connection that closes or drops before the reply arrives makes the run Red, not Green with a count of 0.
+- **DevTools targets are counted, not sampled.** The driver calls `Target.setDiscoverTargets` as soon as it attaches and counts every `Target.targetCreated` event whose type or URL is DevTools. That count is `devtools_targets_opened`, and the shapes require it to be 0. The count is derived, not written by hand. The transport logs every event it receives, and a Rust assert recomputes `devtools_targets_opened` from that log, counting `Target.targetCreated` events whose type or URL is DevTools plus DevTools entries in the teardown snapshot, and requires it to equal the recorded value. Closing the connection cannot drop an event uncounted. Before closing, the driver sends `Target.getTargets` and reads every event until that reply arrives. It then counts DevTools targets in the reply as well, so a target whose `Target.targetCreated` was still in flight is either counted or listed in the snapshot. A snapshot that lists a DevTools target fails the run. The snapshot is asserted, not assumed. The tally's last frame on the browser connection must be that `Target.getTargets`, and its reply must have been received and parsed before the socket closed. A connection that closes or drops before the reply arrives makes the run Red, not Green with a count of 0.
 - **`--disable-dev-tools` is not adopted** (seat 2's proposal in quorum round 1). Whether Antigravity 2.8.1 honours it is unmeasured, so it would be a guard nobody has seen work. ph4 measures F1 and F12 on a scratch profile instead.
 
 **Control path:** accessibility tree → node → `DOM.getBoxModel` → `Input.dispatchMouseEvent` at the box centre → `Input.insertText` for prompts.
@@ -349,7 +349,7 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 
 - The app runs in **its own process group** (`setsid` through `libc`). `Drop` kills only that group, and the driver never signals any pid outside it.
 - **One dedicated, reused demo profile.** D20 and D21 run on ONE profile directory that belongs to the course, outside the repo and outside the operator's own app, config and XDG directories. It holds `user-data/`, `extensions/`, `home/` and `xdg/`: the app gets `--user-data-dir` and `--extensions-dir` inside it, `--password-store=basic`, and `HOME` and every `XDG_*` directory point inside it too. A fresh scratch profile per take would need a fresh sign-in per take, so the profile is reused. The operator signs in on it once, by hand; a run whose profile is not signed in is `NotRun`. The demos never read, copy, list or receive a credential, and nothing from the profile is ever committed. Each agent's workspace is still fresh per take (below).
-- **The app gets a cleared environment.** The driver launches it with `env_clear()` and sets only `PATH`, `LANG`, `DISPLAY`, `HOME` and the `XDG_*` variables, each pointing inside the demo profile. Nothing the operator's shell exports, such as an API key, reaches the app. The driver reads the child's `/proc/<pid>/environ` after launch and asserts that its keys are exactly that set.
+- **The app gets a cleared environment.** The driver launches it with `env_clear()` and sets only `PATH`, `LANG`, `DISPLAY`, `HOME` and the `XDG_*` variables, each pointing inside the demo profile. Nothing the operator's shell exports, such as an API key, reaches the app. The driver reads the child's `/proc/<pid>/environ` after launch and asserts that its keys are exactly that set, and it checks the values as well. `HOME` and every `XDG_*` value must canonicalize to a path under the canonical demo profile. `PATH`, `LANG` and `DISPLAY` must be byte-equal to the values the launcher set. A value that names the operator's home, however it was built, therefore fails the run.
 - **The driver owns its display.** It starts its own `Xvfb` with `-displayfd` and reads the display number from that pipe; `xvfb-run -a` was only the §2 measurement harness. The same `DISPLAY` value is passed explicitly to the app and to `xdotool` in `E_4`, so neither can reach the operator's display.
 - **The driver attaches only to the port its own child opened.** The app is started with `--remote-debugging-port=0`, and the driver reads the chosen port from `DevToolsActivePort` in the demo profile. The listening socket's inode must belong to a pid in the child's group, checked through `/proc/<pid>/fd` and `/proc/net/tcp`.
 - **Single-instance forwarding is refused.** An Electron app may hand a second launch to an instance that is already running. If the child exits early, or no port appears in the demo profile, the run is `NotRun`, and the driver never looks for any other port.
@@ -664,7 +664,7 @@ Recorded, not changed:
 **Round 4h** re-ran architecture and security on gemini-3.1-pro-high, quoting the Round 4g record. Both lanes returned FAIL. How each finding was handled:
 
 - **Architecture: the listing named "XDG data" in prose but not the variable.** It now names `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `XDG_CACHE_HOME` and `XDG_STATE_HOME`, with their defaults (§5.3).
-- **Architecture: ph3's and ph6's `cargo run -p` was ambiguous**, because the package has a second bin. Every live run names its `--bin` (§6, L3, L6).
+- **Architecture: ph3's and ph6's `cargo run -p` was ambiguous**, because each package has a second bin. Those two live runs name their `--bin` (§6, L3, L6). D19 and D20 have one bin each and need none.
 - **Security: `Target.setDiscoverTargets` could be sent a second time with `discover: false`, so DevTools could open and close unseen.** The constructor cannot build `false`, and the transport refuses a second frame. §5.3 now says the shapes' count shows only that the frame was sent, and the Rust asserts own the params.
 - **Security: an allowed method could reach a DevTools console.** `Target.attachToTarget` is built only from a `page` target that is not `devtools://`, and is asserted against the tally (§5.3).
 - **Security: the lint skipped demo-kit and build scripts.** Its credential, environment, socket, process, `rustix` and `libc` rules now cover the workspace dependency closure and its `build.rs` files (§5.3).
@@ -674,6 +674,14 @@ Recorded, not changed:
 
 - **The teardown `Target.getTargets` snapshot was never asserted.** It must be the last frame on the browser connection, with its reply parsed before close; a dropped connection is Red (§5.3).
 - **demo-kit was outside the file-confinement rule and could read `RFML5_AGY_PROFILE`.** Only `agy-cdp::launch` may read that variable, so no other crate can form a profile path (§5.3).
+
+**Round 4j** re-ran both roles on gemini-3.1-pro-high, quoting the Round 4i record. Every FAIL finding was tagged cannot-run, contradiction or undelivered-guarantee. Both lanes returned FAIL, and all five tagged defects were fixed:
+
+- **cannot-run: demo-kit and D18 both declared a bin named `fake-apr-serve`,** which collide in the workspace output directory. D18's is `d18-fake-apr-serve` (§5.1).
+- **undelivered-guarantee: the parallel phases' `judge` runs shared `<run_root>/judge/`.** Each call now creates a fresh `judge-<n>/` that fails if the name exists (§4 item 3).
+- **contradiction: the Round 4h record said "every live run" names its `--bin`.** It now says ph3's and ph6's do, and that D19 and D20 have one bin each (§7).
+- **undelivered-guarantee: the cleared-environment assert checked keys, not values.** `HOME` and every `XDG_*` value must canonicalize under the demo profile, and the rest must equal what the launcher set (§5.3).
+- **undelivered-guarantee: `devtools_targets_opened` was written, not derived.** A Rust assert recomputes it from the transport's event log and the teardown snapshot (§5.3).
 
 **Escalations:**
 
