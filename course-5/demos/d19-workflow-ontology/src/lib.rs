@@ -5,4 +5,5 @@
 pub mod matrix;
 pub mod patch;
 pub mod record;
+pub mod screen;
 pub mod steps;
