@@ -73,5 +73,12 @@
     "5c8e1925fcdc10670e2ac62f2ea5b72c06c9cce9e8e9082f901284490ff67750",
     "846c5336a8fa34ab664cd5605a7dc978804c2925f137af621f51a56a4ab5b39a",
     "e877cff6fbed934d3144705c2f0ff3dc21626f808a3fb563d67408474aba9b24"
-  ]
+  ],
+  "agent_1_started_ms": 1200,
+  "agent_2_started_ms": 1350,
+  "agent_3_started_ms": 1500,
+  "all_running_seen_ms": 1620,
+  "agent_1_done_ms": 41000,
+  "agent_2_done_ms": 43500,
+  "agent_3_done_ms": 45200
 }

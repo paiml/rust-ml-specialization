@@ -5,8 +5,9 @@ scope: >
   desktop app over the Chrome DevTools Protocol and fans out three agents,
   each with its own fixture task and its own workspace directory. It uses
   typed CDP domains only, never a JavaScript string, and sends only three
-  keys. It launches its own app instance on a scratch profile, with HOME and
-  the XDG directories redirected, and never touches the operator's. Each
+  keys. It launches its own app instance on the course's own dedicated demo
+  profile, with HOME and the XDG directories redirected into it, and never
+  touches the operator's. Each
   agent is a named property set (agent_1_*, agent_2_*, agent_3_*), so every
   claim about agent N is a constraint on agent N's own properties.
 status: active
@@ -17,7 +18,7 @@ metadata:
   last_modified: '2026-10-04'
   author: PAIML Engineering
   description: >
-    Fan-out you can watch: three agents running side by side in the app's
+    Fan-out, watchable in the recording: three agents running side by side in the app's
     agent view. The run record lists every CDP method the driver sent, and
     an exact allow-list of twenty typed methods refuses anything that can
     run JavaScript (Runtime.*, Debugger.*, Page.addScriptToEvaluateOnNewDocument,
@@ -59,6 +60,15 @@ shapes:
       - {path: d20:agent_1_files, minCount: 1, pattern: '^ws/agent-1/[^/]+$'}
       - {path: d20:agent_2_files, minCount: 1, pattern: '^ws/agent-2/[^/]+$'}
       - {path: d20:agent_3_files, minCount: 1, pattern: '^ws/agent-3/[^/]+$'}
+      - {path: d20:agent_1_started_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d20:all_running_seen_ms}
+      - {path: d20:agent_2_started_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d20:all_running_seen_ms}
+      - {path: d20:agent_3_started_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d20:all_running_seen_ms}
+      - {path: d20:all_running_seen_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d20:agent_1_done_ms}
+      - {path: d20:all_running_seen_ms, lessThanOrEquals: d20:agent_2_done_ms}
+      - {path: d20:all_running_seen_ms, lessThanOrEquals: d20:agent_3_done_ms}
+      - {path: d20:agent_1_done_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d20:agent_2_done_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d20:agent_3_done_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
       - {path: d20:screenshots_sha256, minCount: 3, maxCount: 3, pattern: '^[0-9a-f]{64}$'}
   - id: d20-cdp-method
     targetClass: ont:D20CdpMethod
@@ -82,7 +92,10 @@ equations:
     domain: "every CDP method and key the driver sent; DevTools targets counted from Target.targetCreated events, not sampled"
   operator_untouched:
     formula: "profile(run) ≠ profile(operator) ∧ listing(operator, before) = listing(operator, after)"
-    domain: "the app's --user-data-dir, HOME and XDG_* redirected to scratch; the operator's app, gemini and XDG config, cache and state directories listed before and after"
+    domain: "the app's --user-data-dir, extensions dir, HOME and XDG_* all inside the course's one dedicated demo profile, which lives outside the repository and is reused across runs (the operator signs in to it once; the demo never reads, copies or receives a credential); the operator's app, gemini and XDG config, cache and state directories listed before and after"
+  concurrent:
+    formula: "∀ N ∈ {1,2,3}: started(agent_N) ≤ all_running_seen ≤ done(agent_N)"
+    domain: "ms since the fan-out started, one monotonic clock. all_running_seen is the first moment one accessibility-tree snapshot reports all three agents running at once; started(N) is the moment agent N was first reported running and done(N) the moment it was first reported done. The shapes order the three moments per agent; the program asserts that all_running_seen comes from ONE snapshot holding three running states, and all_running_seen > 0"
   evidence_distinct:
     formula: "|{sha256(shot)}| = 3"
     domain: "the screenshots before, fanned out and all done; the program also asserts each is non-blank"
@@ -106,6 +119,10 @@ invariants:
   - id: D20-INV-005
     property: the app itself was driven
     formal: 'app_evidence = {Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets}'
+    prose: false
+  - id: D20-INV-006
+    property: the three agents ran at the same time, not one after another
+    formal: '∀ N: started(agent_N) ≤ all_running_seen ≤ done(agent_N)'
     prose: false
 falsification_tests:
   - id: FALSIFY-D20-001
@@ -138,3 +155,8 @@ falsification_tests:
     prediction: a record listing a method with count 0 is rejected by sh:pattern on that method node's count
     test: pv lint spec --gate shapes
     if_fails: a method named in the tally but never sent would count as evidence
+  - id: FALSIFY-D20-007
+    rule: concurrent
+    prediction: a run where agent 3 started only after the all-running moment was recorded is rejected by lessThanOrEquals on agent_3_started_ms
+    test: pv lint spec --gate shapes
+    if_fails: three agents run one after another would pass as a fan-out

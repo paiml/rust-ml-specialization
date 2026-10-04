@@ -2,6 +2,7 @@ ont:d21/d21-run-v1 violates shape `d21-run` (in): ont:d21/keys_sent: "F12" is no
 ont:d21/d21-run-v1 violates shape `d21-run` (in): ont:d21/merged: "true"^^xsd:boolean is not one of ["false"^^xsd:boolean]
 ont:d21/d21-run-v1 violates shape `d21-run` (in): ont:d21/refusal_names: "agent-2" is not one of ["agent-3"]
 ont:d21/d21-run-v1 violates shape `d21-run` (in): ont:d21/stopped_agents: "agent-3" is not one of ["agent-1", "agent-2"]
+ont:d21/d21-run-v1 violates shape `d21-run` (in): ont:d21/stray_writes: "1"^^xsd:integer is not one of ["0"^^xsd:integer]
 ont:d21/d21-run-v1 violates shape `d21-run` (lessThanOrEquals): ont:d21/red_seen_ms: "5120"^^xsd:integer is not <= "5100"^^xsd:integer of ont:d21/stop_agent_1_sent_ms
 ont:d21/d21-run-v1 violates shape `d21-run` (lessThanOrEquals): ont:d21/red_seen_ms: "5120"^^xsd:integer is not <= "5110"^^xsd:integer of ont:d21/stop_agent_2_sent_ms
 ont:d21/d21-run-v1 violates shape `d21-run` (lessThanOrEquals): ont:d21/stop_agent_1_sent_ms: "5100"^^xsd:integer is not <= "5090"^^xsd:integer of ont:d21/stop_agent_1_stopped_ms

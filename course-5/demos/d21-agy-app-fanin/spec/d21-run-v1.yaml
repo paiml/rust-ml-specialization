@@ -47,6 +47,7 @@ shapes:
       - {path: d21:cdp_protocol, minCount: 1, maxCount: 1, in: ["1.3"]}
       - {path: d21:operator_profile_touched, minCount: 1, maxCount: 1, in: [false]}
       - {path: d21:devtools_targets_opened, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d21:stray_writes, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
       - {path: d21:cdp_methods, minCount: 1}
       - {path: d21:app_evidence, minCount: 5, in: [Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets]}
       - {path: d21:keys_sent, in: [Enter, Escape, Tab]}
@@ -89,8 +90,8 @@ equations:
     formula: "∀ m ∈ cdp_methods: m ∈ ALLOW ∧ ∀ k ∈ keys_sent: k ∈ {Enter, Escape, Tab} ∧ devtools_targets_opened = 0"
     domain: "every CDP method and key the driver sent, as in D20"
   operator_untouched:
-    formula: "profile(run) ≠ profile(operator)"
-    domain: "the scratch profile, HOME and XDG_* directories D20 sets up"
+    formula: "profile(run) ≠ profile(operator) ∧ listing(operator, before) = listing(operator, after) ∧ stray_writes = 0"
+    domain: "exactly as in D20: the app's --user-data-dir, extensions dir, HOME and XDG_* all inside the course's one dedicated demo profile; the operator's app, gemini and XDG config, cache and state directories listed by path, size and mtime before and after, the two listings equal, and a canary beside them unchanged; operator_profile_touched comes from that comparison. stray_writes counts every change in the run's tree outside the three agent workspaces"
 invariants:
   - id: D21-INV-001
     property: the line stops after red is seen, and every agent still running is stopped
@@ -110,7 +111,7 @@ invariants:
     prose: false
   - id: D21-INV-005
     property: the driver sends no JavaScript, cannot open DevTools, and never uses the operator's profile
-    formal: '∀ m ∈ cdp_methods: m ∈ ALLOW ∧ keys_sent ⊆ {Enter, Escape, Tab} ∧ devtools_targets_opened = 0 ∧ operator_profile_touched = false'
+    formal: '∀ m ∈ cdp_methods: m ∈ ALLOW ∧ keys_sent ⊆ {Enter, Escape, Tab} ∧ devtools_targets_opened = 0 ∧ operator_profile_touched = false ∧ stray_writes = 0'
     prose: false
   - id: D21-INV-006
     property: the app itself was driven
@@ -157,3 +158,8 @@ falsification_tests:
     prediction: a record listing a method with count 0 is rejected by sh:pattern on that method node's count
     test: pv lint spec --gate shapes
     if_fails: a method named in the tally but never sent would count as evidence
+  - id: FALSIFY-D21-009
+    rule: operator untouched
+    prediction: a run that changed a file outside the three agent workspaces is rejected by sh:in on stray_writes
+    test: pv lint spec --gate shapes
+    if_fails: a stop path that wrote somewhere else would pass

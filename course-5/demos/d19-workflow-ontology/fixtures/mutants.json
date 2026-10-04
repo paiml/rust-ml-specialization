@@ -17,6 +17,9 @@
           "path": "/server_spawns",
           "value": 2
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (in): ont:d18/server_spawns: \"2\"^^xsd:integer is not one of [\"1\"^^xsd:integer]"
       ]
     },
     {
@@ -34,6 +37,9 @@
           "path": "/checker_files/-",
           "value": "out/answers.json"
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (in): ont:d18/checker_files: \"out/answers.json\" is not one of [\"out/verdicts.json\"]"
       ]
     },
     {
@@ -51,6 +57,9 @@
           "path": "/q1/decision",
           "value": "maybe"
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q1 violates shape `d18-item` (in): ont:d18/decision: \"maybe\" is not one of [\"accept\", \"reject\"]"
       ]
     },
     {
@@ -74,6 +83,10 @@
           "path": "/server_start_ticks_end",
           "value": "918273"
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (datatype): \"918273\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer",
+        "ont:d18/d18-run-v1 violates shape `d18-run` (datatype): \"918273\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer"
       ]
     },
     {
@@ -92,23 +105,29 @@
         {
           "op": "replace",
           "path": "/q2/seq_writer_start_ms",
-          "value": "2281"
+          "value": "1181"
         },
         {
           "op": "replace",
           "path": "/q2/seq_writer_end_ms",
-          "value": "3460"
+          "value": "2360"
         },
         {
           "op": "replace",
           "path": "/q2/seq_checker_start_ms",
-          "value": "3461"
+          "value": "5741"
         },
         {
           "op": "replace",
           "path": "/q2/seq_checker_end_ms",
-          "value": "4570"
+          "value": "6850"
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q2 violates shape `d18-item` (datatype): \"1181\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer",
+        "ont:d18/d18-run-v1.q2 violates shape `d18-item` (datatype): \"2360\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer",
+        "ont:d18/d18-run-v1.q2 violates shape `d18-item` (datatype): \"5741\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer",
+        "ont:d18/d18-run-v1.q2 violates shape `d18-item` (datatype): \"6850\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer"
       ]
     },
     {
@@ -132,6 +151,10 @@
           "path": "/digest_pipelined",
           "value": "5D2B7C1E0F9A4B3C8D7E6F5A4B3C2D1E0F9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C"
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (pattern): ont:d18/digest_pipelined: \"5D2B7C1E0F9A4B3C8D7E6F5A4B3C2D1E0F9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C\" does not match /^[0-9a-f]{64}$/",
+        "ont:d18/d18-run-v1 violates shape `d18-run` (pattern): ont:d18/digest_sequential: \"5D2B7C1E0F9A4B3C8D7E6F5A4B3C2D1E0F9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C\" does not match /^[0-9a-f]{64}$/"
       ]
     },
     {
@@ -149,6 +172,9 @@
           "path": "/server_pid_end",
           "value": 41388
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (lessThanOrEquals): ont:d18/server_pid_end: \"41388\"^^xsd:integer is not <= \"41210\"^^xsd:integer of ont:d18/server_pid_start"
       ]
     },
     {
@@ -166,6 +192,9 @@
           "path": "/server_start_ticks_end",
           "value": 918274
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (lessThanOrEquals): ont:d18/server_start_ticks_end: \"918274\"^^xsd:integer is not <= \"918273\"^^xsd:integer of ont:d18/server_start_ticks_start"
       ]
     },
     {
@@ -183,6 +212,9 @@
           "path": "/q3/pipe_checker_start_ms",
           "value": 5501
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q3 violates shape `d18-item` (lessThanOrEquals): ont:d18/pipe_writer_end_ms: \"5560\"^^xsd:integer is not <= \"5501\"^^xsd:integer of ont:d18/pipe_checker_start_ms"
       ]
     },
     {
@@ -199,6 +231,9 @@
           "op": "remove",
           "path": "/writer_files"
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (minCount): has 0 value(s) of ont:d18/writer_files, minCount is 1"
       ]
     },
     {
@@ -215,6 +250,9 @@
           "op": "remove",
           "path": "/q4"
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (minCount): has 0 value(s) of ont:d18/q4, minCount is 1"
       ]
     },
     {
@@ -231,6 +269,9 @@
           "op": "remove",
           "path": "/q2/decision"
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q2 violates shape `d18-item` (minCount): has 0 value(s) of ont:d18/decision, minCount is 1"
       ]
     },
     {
@@ -248,10 +289,10 @@
           "path": "/q2",
           "value": [
             {
-              "seq_writer_start_ms": 2281,
-              "seq_writer_end_ms": 3460,
-              "seq_checker_start_ms": 3461,
-              "seq_checker_end_ms": 4570,
+              "seq_writer_start_ms": 1181,
+              "seq_writer_end_ms": 2360,
+              "seq_checker_start_ms": 5741,
+              "seq_checker_end_ms": 6850,
               "pipe_writer_start_ms": 1177,
               "pipe_writer_end_ms": 3390,
               "pipe_checker_start_ms": 3391,
@@ -259,10 +300,10 @@
               "decision": "accept"
             },
             {
-              "seq_writer_start_ms": 2281,
-              "seq_writer_end_ms": 3460,
-              "seq_checker_start_ms": 3461,
-              "seq_checker_end_ms": 4570,
+              "seq_writer_start_ms": 1181,
+              "seq_writer_end_ms": 2360,
+              "seq_checker_start_ms": 5741,
+              "seq_checker_end_ms": 6850,
               "pipe_writer_start_ms": 1177,
               "pipe_writer_end_ms": 3390,
               "pipe_checker_start_ms": 3391,
@@ -271,6 +312,9 @@
             }
           ]
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (maxCount): has 2 value(s) of ont:d18/q2, maxCount is 1: ont:d18/d18-run-v1.q2.0, ont:d18/d18-run-v1.q2.1"
       ]
     },
     {
@@ -291,6 +335,9 @@
             "reject"
           ]
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q1 violates shape `d18-item` (maxCount): has 2 value(s) of ont:d18/decision, maxCount is 1: accept, reject"
       ]
     },
     {
@@ -308,6 +355,9 @@
           "path": "/speedup",
           "value": 1.05
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (closed): carries ont:d18/speedup, which the closed shape does not declare"
       ]
     },
     {
@@ -325,6 +375,9 @@
           "path": "/q1/note",
           "value": "x"
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q1 violates shape `d18-item` (closed): carries ont:d18/note, which the closed shape does not declare"
       ]
     },
     {
@@ -342,6 +395,9 @@
           "path": "/rdf:type",
           "value": "ont:Other"
         }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (closed): carries ont:d18/rdf:type, which the closed shape does not declare"
       ]
     }
   ],
@@ -400,22 +456,22 @@
         {
           "op": "replace",
           "path": "/q2/seq_writer_start_ms",
-          "value": 102281
+          "value": 101181
         },
         {
           "op": "replace",
           "path": "/q2/seq_writer_end_ms",
-          "value": 103460
+          "value": 102360
         },
         {
           "op": "replace",
           "path": "/q2/seq_checker_start_ms",
-          "value": 103461
+          "value": 105741
         },
         {
           "op": "replace",
           "path": "/q2/seq_checker_end_ms",
-          "value": 104570
+          "value": 106850
         },
         {
           "op": "replace",
@@ -454,7 +510,7 @@
     {
       "id": "s06",
       "why": "a pipelined schedule that never overlapped: each writer starts only after the previous item's checker ended, so it is a sequential run under the pipelined label. Every per-item chain is still ordered",
-      "rust_assert": "for i in 1..3, pipe_writer_start(q(i+1)) < pipe_checker_end(q(i)): the writer of the next item started while the checker of this one was still running",
+      "rust_assert": "the pipelined_overlaps assert (spec section 5.1): for at least one i in {1, 2, 3}, checker_start(q i) < writer_end(q i+1) and writer_start(q i+1) < checker_end(q i), on one clock. Here no such i exists",
       "patch": [
         {
           "op": "replace",

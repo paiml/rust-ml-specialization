@@ -6,7 +6,7 @@ status: active
 # rfml5 new demos D18–D21: two agents on one server, the workflow as an ontology, and agent fan-out in the Antigravity app
 
 **Ticket:** PMAT-020 (#20), epic #19. **Branch:** `PMAT-020-rfml5-new-demos`.
-**Status:** spec, revised after quorum rounds 1 and 2 (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 16 sabotages exactly as each row states — the exact set of failing checks, and for the four mutant-table rows the reason as well. None of the four demo binaries exists yet.
+**Status:** spec, revised after quorum rounds 1, 2 and 3 (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
 
 ## 0. Origin
 
@@ -28,7 +28,7 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
 |---|---|---|
 | D18 `d18-two-agents-one-server` | rfml5/3.3 [U] | Two agents, a writer and a checker, share **one** resident `apr serve`. The checker decides, every output file has one writer, and the schedule does not change the bytes. |
 | D19 `d19-workflow-ontology` | rfml5/3.4 [U] | D18's workflow, written as a pv ontology plus SHACL shapes. pv kills 17 named mutants of a good run, each for exactly the constraint it breaks, and stays silent on the good run itself. Six documented mutants survive: they are what the shapes cannot see, and each is owned by a Rust assert. |
-| D20 `d20-agy-app-fanout` | rfml5/4.3 [U] | A Rust driver opens the Antigravity desktop app on a scratch profile and fans out three agents you can watch. Every CDP method it sends is from a fixed list of twenty, none of which runs JavaScript. It sends only Enter, Escape and Tab, and the record carries the evidence that the app itself was driven. |
+| D20 `d20-agy-app-fanout` | rfml5/4.3 [U] | A Rust driver opens the Antigravity desktop app on its own dedicated demo profile and fans out three agents that run at the same time, watchable in the recording. Every CDP method it sends is from a fixed list of twenty, none of which runs JavaScript. It sends only Enter, Escape and Tab, and the record carries the evidence that the app itself was driven. |
 | D21 `d21-agy-app-fanin` | rfml5/4.4 [U] | Fan-in with stop-the-line. One agent goes red, the driver stops the other two after the red and never before, refuses to merge, and the reduction is the same in all six arrival orders. |
 
 ### D18: two agents, one server
@@ -69,10 +69,10 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
   - `engine_conformant`: the engine passes its W3C cases.
 - **D19's own record is a summary, not a self-judgement.** Every field in it is copied from pv's JSON output, and `xtask verify` re-runs the whole table independently. Judging that record with D19's own shapes checks its form. The evidence is the re-run, which anyone can repeat.
 
-### D20: fan-out you can watch
+### D20: fan-out, watchable in the recording
 
-- **Launch.** A Rust CDP driver launches Antigravity 2.8.1 under a virtual display. It uses a scratch user-data and extensions directory, with `HOME` and the `XDG_*` directories also redirected to scratch. It then:
-  1. creates three agents in the app's agent view. Each has its own fixture task (`fixture-alpha`, `fixture-beta`, `fixture-gamma`) and its own scratch workspace, `ws/agent-N/`;
+- **Launch.** A Rust CDP driver launches Antigravity 2.8.1 under a virtual display, so there is nothing to watch live: the recording is what a viewer watches. It uses the course's one dedicated demo profile (§5.3): its own user-data and extensions directories, with `HOME` and every `XDG_*` directory redirected into that profile. It then:
+  1. creates three agents in the app's agent view. Each has its own fixture task (`fixture-alpha`, `fixture-beta`, `fixture-gamma`) and its own fresh workspace, `ws/agent-N/`;
   2. waits until each reports done;
   3. captures three screenshots: before the fan-out, fanned out, and all done. They must be distinct and non-blank.
 - **What it claims** (`spec/d20-run-v1.yaml`). Each agent is a named property set (`agent_N_task`, `agent_N_state`, `agent_N_files`), so every claim about agent N constrains agent N's own properties:
@@ -80,7 +80,8 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
   - `app_driven`: the record's `app_evidence` holds all five of `Accessibility.getFullAXTree`, `DOM.getBoxModel`, `Input.dispatchMouseEvent`, `Input.insertText` and `Target.setDiscoverTargets`, computed from the driver's tally of sent frames, and every listed method has a count of at least 1. A CLI fallback sends none of the five.
   - `disjoint_workspaces`: every file of agent N is under `ws/agent-N/`, and `stray_writes = 0`.
   - `no_js`: every method sent is in ALLOW, every key sent is Enter, Escape or Tab, and `devtools_targets_opened = 0`.
-  - `operator_untouched`: the operator's own app profile is never opened or modified.
+  - `concurrent`: the three agents really ran at the same time. One accessibility-tree snapshot shows all three running (`all_running_seen_ms`), and for each agent N, `agent_N_started_ms ≤ all_running_seen_ms ≤ agent_N_done_ms`, on one clock. A driver that ran the agents one after another has no such snapshot.
+  - `operator_untouched`: the run's profile is not the operator's own, and a listing of the operator's profile, config and XDG directories is identical before and after the run.
   - `evidence_distinct`: the three screenshots have three distinct digests.
 
 ### D21: fan-in and stop-the-line
@@ -89,11 +90,12 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
   - Agent-3's task carries a planted check failure, so the stop path runs on every take.
   - Agents 1 and 2 hold a long step. When agent-3 is seen red, the driver reads which agents are still running from the accessibility tree at that moment (`running_at_red`). It stops each of them through the app's own stop control.
   - The reducer then refuses to merge, naming agent-3. It runs over all six arrival orders of the three results, and the digests must be equal.
+  - The driver also captures screenshots, so the record lists `Page.captureScreenshot`. They are for the recording only: D21 makes no claim that they are distinct.
 - **What it claims** (`spec/d21-run-v1.yaml`). Every timing claim is a relation between two named properties (`red_seen_ms`, `stop_agent_N_sent_ms`, `stop_agent_N_stopped_ms`):
   - `stop_the_line`: red_seen ≤ stop_sent ≤ stopped for agents 1 and 2; `stopped_agents = running_at_red = {agent-1, agent-2}`; and `writes_after_stop = 0`.
   - `refuse_on_red`: `merged = false`, and `refusal_names = {agent-3}`, the lowest red agent id.
   - `order_free`: all six orders ran, and they produced one digest.
-  - `app_driven`, `no_js` and `operator_untouched`: as in D20, with the same evidence, the same twenty methods, the same three keys and the same DevTools count. The stops send no JavaScript either.
+  - `app_driven`, `no_js` and `operator_untouched`: as in D20, with the same evidence, the same twenty methods, the same three keys and the same DevTools count. The stops send no JavaScript either. `operator_untouched` is as strong as D20's: the same before/after listing equality, and the record also carries `stray_writes = 0`.
 
 ## 2. Measured facts this spec rests on
 
@@ -134,9 +136,9 @@ Each fact was measured on the build named. Anything not in this list is **[U]** 
   - A run directory **inside a git work tree** trips PV-ONT-014 F-34, so every judge run is materialised outside git.
 - **M5: Antigravity 2.8.1.**
   - It is Electron (Chrome/146.0.7680.72, CDP protocol 1.3).
-  - It starts headless under `xvfb-run -a` with these flags: `--user-data-dir <scratch> --extensions-dir <scratch> --remote-debugging-port=<p> --no-sandbox --disable-gpu --new-window`.
+  - It starts headless under `xvfb-run -a` with these flags: `--user-data-dir <profile>/user-data --extensions-dir <profile>/extensions --remote-debugging-port=<p> --no-sandbox --disable-gpu --new-window`.
   - Its agent hub is a page at `https://127.0.0.1:<dynamic port>/`.
-  - On a fresh scratch profile, the bundled language server logged that auth succeeded. *How* it obtained auth is unmeasured; see E2.
+  - On a fresh test profile, the bundled language server logged that auth succeeded. *How* it obtained auth is unmeasured. The demos do not depend on it: the operator signs in once on the dedicated demo profile (§5.3, E2), and that sign-in survived a cold restart of the app.
   - Auto-update is on, so the build is pinned by content:
     - `resources/app.asar` sha256 `cb425e9a…af26`;
     - the launcher binary sha256 `b0d12777…72d6`.
@@ -147,17 +149,17 @@ Each fact was measured on the build named. Anything not in this list is **[U]** 
   - D21 carries the identical list.
 - **M7: D19's mutant matrix**, run by `xtask/proofs/verify-mutants.sh` against D18's contract.
   - The identity (the unpatched golden record) passes: exit 0, Pass, no findings.
-  - **17/17 kill rows are killed purely.** Each exits 1 with the exact finding count, the findings name exactly the row's `properties`, and every finding starts ``<node><focus> violates shape `<target>` (<component>)``. A row that also trips a second constraint, or trips the right one on the wrong node, is reported as impure and fails.
+  - **17/17 kill rows are killed purely.** Each exits 1 with the exact finding count, the findings name exactly the row's `properties`, and every finding starts ``<node><focus> violates shape `<target>` (<component>)``. A row that also trips a second constraint, or trips the right one on the wrong node, is reported as impure and fails. And the sorted findings must equal the row's `messages` byte for byte: the right shape on a different value, or a changed message format, is reported as `WRONG-MESSAGE` and fails.
     - m04 and m06 raise two findings each and m05 four, by design and all of one component. Each patches every member of its pairs (both start ticks; all four of `q2`'s sequential times, writer and checker, start and end; both digests) to strings, so every `lessThanOrEquals` among them still holds as a string comparison and only `datatype` or `pattern` fires.
     - A `datatype` finding names no property, so m04's and m05's `properties` are `-`, one per finding: those rows are held to focus node, shape, component and count.
     - Every component is killed on the run node, and every component except `pattern` (which the item shape does not use) is also killed on an item node.
-  - **6/6 survive rows pass** with exit 0 and no findings. They are what the shapes cannot see, each caught in Rust:
+  - **6/6 survive rows pass** with exit 0 and no findings. They are what the shapes cannot see, each caught in Rust. A row whose `rust_assert` names nothing (empty, `none`, `null`, `-`, `n/a`, `tbd`, `todo`) is reported as `NO-RUST-ASSERT` and fails:
     - s01, both digests are the sha256 of the empty string: the program recomputes sha256 over the output files after each schedule.
-    - s02, both pids are 1: the pid is read from the child handle, and `/proc/<pid>/exe` must resolve to the pinned `apr`.
+    - s02, both pids are 41388, a plausible pid the shapes cannot tell apart from the real one (pid 0 or 1 would be refused by the pid pattern, so that mutant would be a kill, not a survivor): the pid is read from the child handle, and `/proc/<pid>/exe` must resolve to the pinned `apr`.
     - s03, one decision flipped: decisions are parsed from `out/verdicts.json`, which both digests cover.
     - s04, one item shifted 100 s later so that q2 follows q3: every timestamp comes from one monotonic clock at the sink, items increase within a schedule, and each is at most that schedule's elapsed time.
     - s05, `writer_files` lists one path twice: an equivalent mutant, since RDF values are a set. Each sink opens its file with `create_new`, so a second open of one path is an error.
-    - s06, a pipelined schedule that never overlapped: each writer starts only after the previous item's checker ended, so it is a sequential run under the pipelined label, and every per-item chain is still ordered. The program asserts that for i in 1..3 the writer of q(i+1) started while the checker of q(i) was still running.
+    - s06, a pipelined schedule that never overlapped: each writer starts only after the previous item's checker ended, so it is a sequential run under the pipelined label, and every per-item chain is still ordered. It is caught by `pipelined_overlaps`, stated once in §5.1.
     - m17 is the kill row behind the round-2 finding that a JSON key spelled `rdf:type` might pass `ignoredProperties: [rdf:type]`: it does not. `closed` rejects it on the run node, naming `rdf:type`.
   - Result: **killed and named 17/17, survived 6/6.**
 - **M8: relations only between named properties of one node.** pv's `lessThanOrEquals` compares two properties of the same focus node, and pv has no arithmetic. So every timing or identity claim here is written as a relation between two *named* properties of one node: `q1..q4` in D18, `agent_N_*` in D20, `stop_agent_N_*` in D21. A repeated path carrying a second `lessThanOrEquals` is checked independently; this was measured on D21's `red_seen_ms`, which is bounded by both stops.
@@ -181,9 +183,9 @@ No `Runtime.*`, no `Debugger.*`, no `Page.navigate`, no `Page.addScriptToEvaluat
 |---|---|---|---|---|
 | `spec/dNN-run-v1.yaml` (contract: entity, vocabulary, shapes, equations, invariants, falsifiers) | 2 shapes | 1 shape | 2 shapes | 2 shapes |
 | `fixtures/receipt.golden.json` passes: `pv lint` exit 0, Pass, `pc_shape` fired, `not_armed_shapes` empty, `unarmed_violations` 0, W3C 19/19 | focus 5 | focus 1 | focus 10 | focus 10 |
-| the golden run's `plant_violations` (pv's own positive control) | 25 | 17 | 21 | 24 |
-| `fixtures/receipt.planted.json` is rejected with exit 1 | 5 findings | 5 findings | 9 findings | 13 findings |
-| `fixtures/receipt.planted.expect`: the sorted finding messages (`LC_ALL=C`), which must match byte for byte | 5 lines | 5 lines | 9 lines | 13 lines |
+| the golden run's `plant_violations` (pv's own positive control); `focus_nodes_n`, `shapes_n` and this count are asserted by `A_1` | 25 | 17 | 28 | 25 |
+| `fixtures/receipt.planted.json` is rejected with exit 1 | 5 findings | 5 findings | 10 findings | 14 findings |
+| `fixtures/receipt.planted.expect`: the sorted finding messages (`LC_ALL=C`), which must match byte for byte | 5 lines | 5 lines | 10 lines | 14 lines |
 | `fixtures/mutants.json` (RFC 6902) | — | 23 rows: 17 kill, 6 survive | — | — |
 
 **These fixtures test the contracts, not a run.** They are hand-built records and are not evidence that any demo ran. Only a live run judged by the harness is (§4).
@@ -208,6 +210,7 @@ Each planted record breaks several claims at once, and every finding maps to exa
   - the app evidence lacks `Input.insertText` (`minCount: 5`), and two of the three screenshots are identical (`minCount: 3`);
   - `Page.captureScreenshot` is listed with a count of 0 (`pattern` on that method node's `count`);
   - `Runtime.evaluate` and `Page.addScriptToEvaluateOnNewDocument` were sent, each named by its own `cdp_methods` node (`pattern`).
+  - agent 3 started after the snapshot that claims all three were running (`lessThanOrEquals` on `agent_3_started_ms`).
 - **D21:**
   - agent-1's and agent-2's stops were both sent before the red was seen, and each agent's stopped state was read before its stop was sent (`lessThanOrEquals`, four times, each naming the earlier property);
   - agent-3, which had already finished, is among the stopped agents (`in`);
@@ -215,6 +218,7 @@ Each planted record breaks several claims at once, and every finding maps to exa
   - one order's digest differs (`maxCount`), and one order ran twice, so only five distinct orders ran (`minCount`);
   - F12 was sent (`in`), the app evidence lacks `Input.insertText` (`minCount: 5`), and `Page.captureScreenshot` is listed with a count of 0 (`pattern`);
   - `Runtime.callFunctionOn` was sent, named by its method node (`pattern`).
+  - the driver wrote one file outside every agent workspace (`in` on `stray_writes`).
 
 ## 4. Harness work (shared, lands first)
 
@@ -259,7 +263,7 @@ The changes:
    - D19 additionally runs the mutant matrix (§5.2).
    - D20 and D21 additionally check `app_evidence = EVIDENCE ∩ {m.method : m ∈ cdp_methods}`. With the shapes' `minCount: 5` this means each of the five evidence methods was sent at least once. pv cannot relate one property's values to another node's, so this cross-check is Rust's (M8).
    - `xtask verify --only <id>` is added so each build phase has its own acceptance command.
-   - The arm **ports** the two committed proof scripts, `xtask/proofs/spec-proofs.sh` and `xtask/proofs/verify-mutants.sh`, into Rust. Each of the scripts' sixteen `--self-test` sabotages becomes a test that must see exactly its named set of checks refuse, and, for the four mutant-table rows, its named reason. Once the port is green, ph2 deletes both scripts, so no gate is kept in two places.
+   - The arm **ports** the two committed proof scripts, `xtask/proofs/spec-proofs.sh` and `xtask/proofs/verify-mutants.sh`, into Rust. Each of the scripts' twenty-eight `--self-test` sabotages becomes a test that must see exactly its named set of checks refuse, and, for the four mutant-table rows, its named reason. Once the port is green, ph2 deletes both scripts, so no gate is kept in two places.
 6. **CI installs pv.** `aprender-contracts-cli` 0.70.1 is published on crates.io (MIT).
    - The `course-5-demos` job gains `cargo install aprender-contracts-cli --version 0.70.1 --locked`, cached the same way as `bashrs`.
    - The job's existing rule holds: *a missing tool fails, never skips.*
@@ -288,7 +292,7 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 - **Server identity (s02).** `ServeGuard` reads the pid from the spawned child handle, at spawn and at the end, and `/proc/<pid>/exe` must resolve to the binary preflight pinned (in CI, the `fake-apr-serve` bin). Field 22 of `/proc/<pid>/stat`, the start ticks, is read at both moments, which rules out a respawn that reused the pid number.
 - **Decisions come from the checker's file (s03).** Each item's `decision` is parsed from `out/verdicts.json`, the one file only the checker's sink wrote, and both digests cover that file.
 - **One clock (s04).** Every timestamp comes from the orchestrator's monotonic clock at the sink, never from an agent. Within a schedule, items are increasing in i, and each is at most that schedule's elapsed time.
-- **The pipelined schedule really overlaps, and the sequential one never does.** For at least one i, the checker's request on item i and the writer's request on item i+1 are both in flight at once: `checker_start(i) < writer_end(i+1)` and `writer_start(i+1) < checker_end(i)`, on the same clock. In the sequential schedule no two requests overlap. Without this assert, a "pipelined" run that was secretly sequential would make `schedule_independence` vacuous.
+- **`pipelined_overlaps`: the pipelined schedule really overlaps, and the sequential one never does.** This is the one statement of it; §2 M7 (s06) refers here. For at least one i ∈ {1, 2, 3}, the checker's request on q(i) and the writer's request on q(i+1) are both in flight at once: `checker_start(q i) < writer_end(q i+1)` and `writer_start(q i+1) < checker_end(q i)`, on the same clock. In the sequential schedule no two requests overlap. Without this assert, a "pipelined" run that was secretly sequential would make `schedule_independence` vacuous.
 
 **CI:** the full flow runs against the existing `fake-apr-serve` bin, so `cargo test -p d18-two-agents-one-server` exercises roles, causality, digests and the shapes judge without a GPU. The live run is the recording take.
 
@@ -343,12 +347,12 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 **Isolation, asserted in Rust:**
 
 - The app runs in **its own process group** (`setsid` through `libc`). `Drop` kills only that group, and the driver never signals any pid outside it.
-- **Scratch everything.** The app gets a scratch `--user-data-dir`, and `HOME` and every `XDG_*` directory point into scratch too. If the app needs a sign-in on that profile, the run is `NotRun` until the operator signs in. The demos never read, copy or receive a credential.
-- **The driver attaches only to the port its own child opened.** The app is started with `--remote-debugging-port=0`, and the driver reads the chosen port from `DevToolsActivePort` in the scratch profile. The listening socket's inode must belong to a pid in the child's group, checked through `/proc/<pid>/fd` and `/proc/net/tcp`.
-- **Single-instance forwarding is refused.** An Electron app may hand a second launch to an instance that is already running. If the child exits early, or no port appears in the scratch profile, the run is `NotRun`, and the driver never looks for any other port.
+- **One dedicated, reused demo profile.** D20 and D21 run on ONE profile directory that belongs to the course, outside the repo and outside the operator's own app, config and XDG directories. It holds `user-data/`, `extensions/`, `home/` and `xdg/`: the app gets `--user-data-dir` and `--extensions-dir` inside it, `--password-store=basic`, and `HOME` and every `XDG_*` directory point inside it too. A fresh scratch profile per take would need a fresh sign-in per take, so the profile is reused. The operator signs in on it once, by hand; a run whose profile is not signed in is `NotRun`. The demos never read, copy, list or receive a credential, and nothing from the profile is ever committed. Each agent's workspace is still fresh per take (below).
+- **The driver attaches only to the port its own child opened.** The app is started with `--remote-debugging-port=0`, and the driver reads the chosen port from `DevToolsActivePort` in the demo profile. The listening socket's inode must belong to a pid in the child's group, checked through `/proc/<pid>/fd` and `/proc/net/tcp`.
+- **Single-instance forwarding is refused.** An Electron app may hand a second launch to an instance that is already running. If the child exits early, or no port appears in the demo profile, the run is `NotRun`, and the driver never looks for any other port.
 - **The operator's own state is untouched.** The operator's app, gemini, and XDG config, cache and state directories are listed by path, size and mtime before and after the run, and the two listings must be equal. A canary file is planted beside them and must be unchanged afterwards. No operator path is ever passed to the app. `operator_profile_touched` in the record comes from that comparison.
 - **A leak sweep at teardown.** After the group is killed, no process from it may remain, and no socket may still be listening on its port.
-- **Workspaces are isolated.** Each agent's workspace `ws/agent-N/` is a fresh scratch directory. `agent_N_files` comes from a filesystem diff of that workspace, cross-checked against what the agent view reports the agent edited. A change anywhere else in the scratch tree counts in `stray_writes`.
+- **Workspaces are isolated.** Each agent's workspace `ws/agent-N/` is a fresh scratch directory. `agent_N_files` comes from a filesystem diff of that workspace, cross-checked against what the agent view reports the agent edited. A change anywhere else in the take's run tree counts in `stray_writes`; D21 carries the same count, also required to be 0.
 
 **Steps:**
 
@@ -369,6 +373,9 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 - **`Input.insertText` follows a focus check**, as above.
 - **`agent_N_files` equals the filesystem diff of `ws/agent-N/`**, and the agent view's own report of what it edited agrees with it.
 - **The isolation list above**: the driver's own port only, the operator listing and canary unchanged, and the leak sweep empty.
+- **`concurrent` comes from one snapshot.** `all_running_seen_ms` is the time of ONE `Accessibility.getFullAXTree` result in which all three agents show the running state, and it is greater than 0. The shapes bound it between each agent's start and done times; only the program can say all three states came from the same snapshot, so it asserts that before writing the field. Three snapshots that each show one agent running do not count.
+
+**Advisory (round 3, security): what `no_js` cannot see.** `no_js` proves that no method that *runs* JavaScript was sent: every method is in ALLOW and the key set is three keys. It cannot prove that an allowed method never *causes* the page to run its own JavaScript: a click (`Input.dispatchMouseEvent`) on a control runs that control's handler, and `Input.insertText` into an input fires its listeners. That is the app being driven as a user drives it, which is the point of the demo, not JavaScript the driver authored. The claim is worded accordingly: the driver injects no JavaScript.
 
 ### 5.4 D21 (after D20; reuses `agy-cdp`)
 
@@ -386,13 +393,13 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 **Rust asserts beyond the shapes:**
 
 - **Stop latency is bounded:** `red_seen > 0`, and `stopped − red_seen ≤ L` for each stopped agent. pv cannot compute a difference, so this is a Rust assert, and a take that breaks it fails. L stays **[U]** until it is measured by seat 1's procedure (§7, Q3):
-  - at least 30 stop samples on a scratch profile;
+  - at least 30 stop samples on the dedicated demo profile (§5.3);
   - `L = max(p99, 2 × p95)`, rounded up;
   - the samples committed beside the demo.
 
   The long step must last at least 3 × (red + L + UI delay), so that agents 1 and 2 are reliably still running at red. L is re-measured whenever the pinned asar changes.
 
-  **Measuring L is ph6's entry gate.** ph6 records no take until the samples are committed and L is computed from them. Taking the samples drives the app, so it needs a scratch profile the operator has signed in to. That request goes through the cop. Until it is answered, L, and with it the live D21 take, is `NotRun`, never estimated.
+  **Measuring L is ph6's entry gate.** ph6 records no take until the samples are committed and L is computed from them. Taking the samples drives the app, so it needs the demo profile signed in (E2, now done). Until the samples are committed, L, and with it the live D21 take, is `NotRun`, never estimated.
 - **`stopped_agents = running_at_red`.** The shapes bound each set to {agent-1, agent-2} and require two values in each, but cannot equate two value sets, so the program asserts the equality.
 - **Each stop is that agent's own control, and the stop is read back.** Each `stop_agent_N_sent_ms` is the moment of a click on agent N's own stop control: its accessibility node, then `DOM.getBoxModel`, then `Input.dispatchMouseEvent` at the box centre. `stop_agent_N_stopped_ms` is the moment the tree first reports agent N stopped. The shapes order the three moments (FALSIFY-D21-001 and -007); only the program knows which node was clicked.
 - **No writes after the stop, judged by content, not by time.** The two workspace snapshots compare path, size and sha256, so no mtime granularity or slack enters the check.
@@ -409,13 +416,13 @@ The plan has seven phases. A **lane** is one independent reviewer in the quorum;
 
 | Phase | Scope | Acceptance command (re-run by the orchestrator) |
 |---|---|---|
-| ph1 spec grill (3-lane quorum, review only) | this spec and the four `spec/` + `fixtures/` dirs | `A_1`: the spec proofs below, both exit 0 |
+| ph1 spec grill (five-role quorum: security, crux, architecture, adversarial, quality; review only) | this spec and the four `spec/` + `fixtures/` dirs | `A_1`: the spec proofs below, both exit 0 |
 | ph2 harness | `demo-kit/**`, `xtask/**`, `Cargo.toml`, `Cargo.lock`, `.github/workflows/ci.yml`, plus manifests and skeleton bins for d18–d21 and `agy-cdp`. **All** shared-file edits land here. | `cargo test -p demo-kit -p xtask && cargo build --workspace && cargo run -q -p xtask -- verify` |
 | ph3 D18 | `d18-two-agents-one-server/**` | `cargo test -p d18-two-agents-one-server && cargo run -q -p xtask -- verify --only d18-two-agents-one-server`, then live run L3 Green |
 | ph4 agy-cdp + D20 | `agy-cdp/**`, `d20-agy-app-fanout/**` | the entry gate below first; then `cargo test -p agy-cdp -p d20-agy-app-fanout && cargo run -q -p xtask -- verify --only d20-agy-app-fanout`, then live run L4 Green |
-| ph5 D19 | `d19-workflow-ontology/**` | `cargo test -p d19-workflow-ontology && cargo run -q -p xtask -- verify --only d19-workflow-ontology`, then live run L5 Green (pv is its only tool, so L5 needs no GPU and no sign-in) |
+| ph5 D19 | `d19-workflow-ontology/**`; read-only: `d18-two-agents-one-server/spec/**` and `d18-two-agents-one-server/fixtures/**`, which D19 judges and never edits | `cargo test -p d19-workflow-ontology && cargo run -q -p xtask -- verify --only d19-workflow-ontology`, then live run L5 Green (pv is its only tool, so L5 needs no GPU and no sign-in) |
 | ph6 D21 | `d21-agy-app-fanin/**` | `cargo test -p d21-agy-app-fanin && cargo run -q -p xtask -- verify --only d21-agy-app-fanin`, then live run L6 Green |
-| ph7 pre-PR | the whole diff | 3-lane diff quorum, `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo run -q -p xtask -- verify` |
+| ph7 pre-PR | the whole diff | five-role diff quorum (the ph1 roles), `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo run -q -p xtask -- verify` |
 
 **The live runs.** Each writes its Receipt under `$RFML5_RECEIPTS/<id>/<run_id>/`, and only a Green verdict passes. `NotRun` is never Green: a missing tool, a pin mismatch or a missing sign-in leaves the phase open, not done.
 
@@ -424,19 +431,19 @@ The plan has seven phases. A **lane** is one independent reviewer in the quorum;
 - **L5 (D19):** `RFML5_RECEIPTS=<dir> cargo run -q --release -p d19-workflow-ontology`
 - **L6 (D21):** `RFML5_RECEIPTS=<dir> cargo run -q --release -p d21-agy-app-fanin`
 
-L4, L6 and the measurement of L (§5.4) stay `NotRun` until the operator has signed in on the demos' own profile (E2). That request goes through the cop; nothing here estimates a value it could not measure.
+L4, L6 and the measurement of L (§5.4) needed the operator to sign in once on the demos' own profile (E2). That is done, and the sign-in survived a cold restart; a take whose profile is found signed out is `NotRun`. Nothing here estimates a value it could not measure.
 
 **Ordering rules:**
 
-- **D18's contract is frozen at the ph1 commit.** ph5 judges it, so a change to `d18-run-v1.yaml` during ph3 stops ph3, re-runs `A_1`, and goes back through the quorum.
+- **D18's contract and fixtures are frozen at the ph1 commit:** `d18-run-v1.yaml`, `receipt.golden.json`, `receipt.planted.json`, `receipt.planted.expect`, and D19's `mutants.json`. ph5 reads all of them, so a change to any during ph3 stops ph3 and goes back through the quorum. The re-check is `A_1` before ph2 lands; after ph2, which ports and deletes the two scripts, it is `cargo run -q -p xtask -- verify` plus `cargo test -p xtask`, whose tests are the ported sabotages.
 - **Q2 (§7) is settled before ph2 starts,** because ph2 writes `agy-cdp`'s manifest.
 - **ph6 starts after ph4 is Green.** D21 drives the app through `agy-cdp`, which ph4 builds, and uses ph4's committed role/name map and demo profile. ph6 therefore never runs in parallel with ph4.
 
-**ph4 entry gate (E3).** Before any D20 code is written, on a scratch profile:
+**ph4 entry gate (E3).** Before any D20 or D21 recording, on the dedicated demo profile (§5.3), on a virtual display of its own:
 
 1. Dump the hub's accessibility tree.
-2. Show that five controls are reachable through the tree plus input events: new agent, the task box, send, an agent's state, and stop.
-3. Measure whether F1 and F12 open DevTools on 2.8.1, counting `Target.targetCreated` events. The key is pressed with `xdotool` 3.20160805.1 (pinned; the run records `xdotool version`) on the scratch instance's own `DISPLAY`, never the operator's, because `agy-cdp` cannot express either key.
+2. Show that five controls are reachable through the tree plus input events: new agent, the task box, send, an agent's state, and stop. A cold start also shows a "Changes to third-party model access" notice with a Dismiss button; the driver dismisses it through the tree before recording, so Dismiss is in the map too.
+3. Measure whether F1 and F12 open DevTools on 2.8.1, counting `Target.targetCreated` events. The key is pressed with `xdotool` 3.20160805.1 (pinned; the run records `xdotool version`) on the demo instance's own virtual `DISPLAY`, never the operator's, because `agy-cdp` cannot express either key.
 4. Commit the role/name map as a fixture.
 
 If any step fails, ph4 and ph6 stop and escalate.
@@ -445,27 +452,28 @@ If any step fails, ph4 and ph6 stop and escalate.
 
 ```bash
 bash course-5/demos/xtask/proofs/spec-proofs.sh course-5/demos               # exactly 17 checks, 0 failing
-bash course-5/demos/xtask/proofs/spec-proofs.sh --self-test course-5/demos   # 16/16 sabotages, each refused exactly as its row states
+bash course-5/demos/xtask/proofs/spec-proofs.sh --self-test course-5/demos   # 28/28 sabotages, each refused exactly as its row states
 ```
 
 The 17 checks:
 
 | Checks | Count |
 |---|---|
-| `pv validate` on each contract | 4 |
-| the golden record is Green | 4 |
+| `spec/` holds exactly one contract; `pv validate` accepts it and refuses the same contract with a key declared twice (the negative control: `pv validate` is lenient, and a validate that cannot fail proves nothing by passing) | 4 |
+| the golden record is Green: exit 0, Pass, zero findings and violations, the positive control fired, nothing unarmed, W3C 19/19, and `focus_nodes_n`, `shapes_n`, `plant_violations` equal to §3 | 4 |
 | the planted record exits 1, with sorted findings byte-equal to `.expect` | 4 |
 | D19's record agrees with D18's `.expect` and with `mutants.json` | 4 |
-| the mutant table (`verify-mutants.sh`): 17/17 killed and named, 6/6 survived | 1 |
+| the mutant table (`verify-mutants.sh`): 17/17 killed and named, each finding byte-equal to the row's `messages`; 6/6 survived, each naming its Rust assert | 1 |
 
 - Every judge run is materialised in a fresh directory outside any git work tree (M4).
 - Any other number of checks fails: a gate over a different set of checks is not this gate.
-- `--self-test` proves the gate can fail. It plants sixteen sabotages, each in a fresh copy of the demos tree. A row reads `name|exit|want[|reason]`:
+- `--self-test` proves the gate can fail. It plants twenty-eight sabotages, each in a fresh copy of the demos tree. A row reads `name|exit|want[|reason]`:
   - for exit 1, `want` is the exact set of failing checks, sorted with `LC_ALL=C` and joined with `;`. A sabotage that also trips a check it does not name fails the self-test;
   - for exit 2, `want` is the exact last line. The one such row runs an unpinned pv (0.70.2), which is refused as not measured;
-  - `reason`, on the four mutant-table rows, is a fixed string the output must contain, so the table must fail for the stated reason, not merely fail;
+  - `reason`, on every row where the check alone does not say why, is a fixed string the output must contain, so the gate must fail for the stated reason, not merely fail;
   - a row missing its exit, its `want`, or a declared reason is `BAD-ROW`, and fails the self-test.
-- The self-test was falsified in turn. Five defects were planted in a scratch copy: two rows with the named set narrowed, two rows with `want` or the reason emptied, and the empty-output guard reverted (`jq -nr 'input | …'` back to `jq -r`). It reported 11/16 with exit 1, and the five failing rows were exactly the five planted defects. The last one shows the guard is load-bearing: without it, an empty pv output is not caught as such.
+- The self-test was falsified in turn (round 2, at sixteen rows). Five defects were planted in a scratch copy: two rows with the named set narrowed, two rows with `want` or the reason emptied, and the empty-output guard reverted (`jq -nr 'input | …'` back to `jq -r`). It reported 11/16 with exit 1, and the five failing rows were exactly the five planted defects. The last one shows the guard is load-bearing: without it, an empty pv output is not caught as such.
+- The twelve rows added in round 3 sabotage what the earlier ones could not reach. Five use a pv shim that runs the real pv and rewrites its JSON on a passing run: `pc_shape` not fired, a shape not armed, an unarmed violation, W3C 18/19, and a focus count one off; each fails all four golden checks for its own reason. Three misreport pv's exit: a reject that exits 2, a reject that exits 0, and a pass that carries a finding. One makes `pv validate` always exit 0, caught only by the negative control. The rest plant a second contract in D20's `spec/`, a survive row whose `rust_assert` is `None`, and a kill row whose expected message is off by one digit.
 - ph2 ports both scripts into `xtask verify` and deletes them (§4, item 5).
 
 ## 7. Escalations and open questions
@@ -500,7 +508,7 @@ D19's density (E4) is not addressed here: it is a proposal waiting on the outlin
   - `app_evidence` and `keys_sent`, with the `app_driven` equation, `D21-INV-006` and `FALSIFY-D21-006`.
 - **The committed `A_1`:**
   - the two proof scripts;
-  - the self-test, then with eight sabotages, now sixteen.
+  - the self-test, then with eight sabotages, then sixteen, now twenty-eight.
 
 **Quorum round 2** reviewed the revision above, with the same three models:
 
@@ -529,6 +537,39 @@ Two round-2 findings are recorded rather than changed:
 
 - s01 and s03 survive, although the model, seed and temperature are pinned, so `in` could in principle pin their digests and decisions. Both depend on the inference build, and the owner's ruling (E1) leaves the `apr` patch version free. A shape pinning them would refuse a correct run on the next 0.70.x, so they stay survivors, each with its reason in `mutants.json`.
 - `closed` with `ignoredProperties: [rdf:type]` has no row showing the ignore is not a wider escape hatch. Mutant m17 adds a JSON key literally named `rdf:type` and is refused by `closed` (M2), which is the case the ignore could have let through.
+
+**Quorum round 3** reviewed the revision above with five roles, each a separate lane:
+
+| Role | Model | Verdict |
+|---|---|---|
+| security | gpt-oss-120b-medium | FAIL, nine findings |
+| crux | gemini-3.1-pro-high | FAIL, two findings |
+| architecture | gemini-3.1-pro-high | FAIL, four findings |
+| adversarial | claude-sonnet-5-5-medium | FAIL, four findings and one advisory |
+| quality | claude-sonnet-5-5-medium | FAIL, four findings and three advisories |
+
+Every finding was re-read against the files it cites. What changed:
+
+- **Crux: "fans out three agents" had no concurrency claim.** A driver that ran the agents one after another passed every check. D20 now has `concurrent` (§1): one accessibility snapshot shows all three running, and each agent's start ≤ that snapshot ≤ its done, as `lessThanOrEquals` relations; §5.3 asserts the single snapshot in Rust. The planted record has agent 3 starting after the snapshot.
+- **Crux: "you can watch" contradicted the virtual display.** It is now "watchable in the recording", in the spec and the contract.
+- **Architecture: a fresh scratch profile cannot hold a sign-in.** D20 and D21 now run on one dedicated, reused demo profile outside the repo (§5.3). The operator signs in once; the demos never read, copy or receive a credential.
+- **Architecture: the ph3 fallback re-ran a script that ph2 deletes.** After ph2, the re-check is `xtask verify` plus `cargo test -p xtask` (§6).
+- **Architecture: ph5 needs files outside its scope, and D18's golden record was not frozen.** ph5's scope now names D18's `spec/` and `fixtures/` read-only, and the freeze covers D18's contract, golden, planted, `.expect` and D19's mutant table.
+- **Adversarial: a survivor's `rust_assert` was never checked.** `verify-mutants.sh` now fails a row whose `rust_assert` names nothing (`NO-RUST-ASSERT`).
+- **Adversarial: the golden sub-criteria and pv's exit reading had no sabotage.** Twelve rows were added (§6), including pv shims that misreport the verdict or the exit, and an always-0 `validate`. That last row showed `pv validate` is lenient: it accepts a contract with no name, no equations or a bad version. The validate check therefore gained a negative control, the same contract with a key declared twice, which a working `pv validate` refuses.
+- **Adversarial: kills did not compare message text, and counted findings by lines.** Every kill row now carries its exact sorted `messages`, compared byte for byte, and the count is read from pv's JSON.
+- **Adversarial advisory: a second yaml in a spec dir.** The validate check now requires exactly one contract, and a sabotage plants a second.
+- **Quality: s02's description was wrong.** Its pids are 41388; a pid-1 mutant is refused by `pattern` (measured: two `pattern` findings), so it would be a kill.
+- **Quality: the overlap assert was stated three ways.** It is now stated once, as `pipelined_overlaps` in §5.1, with i ∈ {1, 2, 3}; §2 and `mutants.json` refer to it.
+- **Quality: the golden sequential schedule interleaved.** It is now truly sequential: all four writer requests end before the first checker request starts.
+- **Quality: D21's `operator_untouched` was weaker than D20's.** It now has the listing equality and `stray_writes = 0`, with a falsifier; the planted record has one stray write.
+- **Quality advisories.** The §3 counts are now asserted by `A_1`; the phase table says five roles; D21's screenshots are stated as recording-only.
+
+Recorded, not changed:
+
+- **Security, seven findings: the planted fixtures contain the defects.** `Runtime.evaluate`, `Page.addScriptToEvaluateOnNewDocument`, `Runtime.callFunctionOn`, F12, a touched operator profile and a cross-agent write all appear in `receipt.planted.json`. They are false positives: a planted record exists to carry exactly those defects, and `A_1` requires pv to reject each one with the finding in `.expect`.
+- **Security: "JavaScript injection possible via `Page.addScriptToEvaluateOnNewDocument`" (§2 M6) and "DevTools via F12" (§5.3).** False positives as findings: M6 records a hole that was measured and closed, and the F12 risk is the one E3 measures before any recording, with F12 outside the three-key set. "Runtime methods present despite the enum claim" cites the line stating that the crate has no `Runtime` type and a lint refusing the strings, which is the opposite claim.
+- **Security advisory: `no_js` cannot see JavaScript the page runs itself in response to an allowed input.** True, and now stated in §5.3: the claim is that the driver injects none.
 
 **Escalations:**
 

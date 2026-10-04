@@ -7,10 +7,13 @@
 #             starts "<node><focus> violates shape `<target>` (<component>)". A mutant that also trips
 #             a second constraint, or the right one on the wrong node, is NOT killed: it is impure.
 #             Each finding must also name the row's .properties: the first "<ns><prop>" token after
-#             the prefix (the constraint's path), or "-" where pv 0.70.1 names none (datatype).
+#             the prefix (the constraint's path), or "-" where pv 0.70.1 names none (datatype). And
+#             the sorted findings must equal the row's .messages byte for byte: the right shape on a
+#             different value, or a changed message format, is not this row's kill.
 #   survive   every survive row passes (exit 0, verdict Pass, no findings). The shapes cannot see it;
-#             the row names the Rust assert that does. A survivor that starts failing is a change in
-#             pv's semantics, and it is reported, never absorbed.
+#             the row names the Rust assert that does. A rust_assert that is empty, "none", "null",
+#             "-", "n/a", "tbd" or "todo" names nothing, and the row fails. A survivor that starts
+#             failing is a change in pv's semantics, and it is reported, never absorbed.
 # Each judge run is materialised in a fresh directory outside any git work tree (PV-ONT-014).
 # ph1 interim: ph2 ports this into `xtask verify --only d19-workflow-ontology`, with these arms as tests.
 set -u
@@ -53,6 +56,8 @@ judge() { # judge <record> <label>: pv's exit status; findings at $work/<label>/
   if ! jq -e '.verdict' "$run/out.json" > /dev/null 2>&1; then echo "no-json" > "$run/verdict.txt"; return 3; fi
   jq -r '.verdict' "$run/out.json" > "$run/verdict.txt"
   jq -r '.findings[]?.message' "$run/out.json" > "$run/messages.txt"
+  # Count findings from the JSON, not by lines: a message holding a newline is still one finding.
+  jq -r '.findings | length' "$run/out.json" > "$run/count.txt"
   return "$e"
 }
 
@@ -63,7 +68,7 @@ patched() { # patched <ops json> <out>: apply the patch to the golden record; re
 
 failed=0
 judge "$golden" identity; e=$?
-nmsg=$(wc -l < "$work/identity/messages.txt" 2> /dev/null || echo missing)
+nmsg=$(cat "$work/identity/count.txt" 2> /dev/null || echo missing)
 if [ "$e" -eq 0 ] && [ "$(cat "$work/identity/verdict.txt")" = Pass ] && [ "$nmsg" = 0 ]; then
   echo "identity exit=0 findings=0 passes"
 else
@@ -82,17 +87,24 @@ for ((i = 0; i < n_kill; i++)); do
   fi
   judge "$work/$id.json" "$id"; e=$?
   prefix="$node$foc violates shape \`$tgt\` ($comp)"
-  got=$(wc -l < "$work/$id/messages.txt" 2> /dev/null || echo 0)
+  got=$(cat "$work/$id/count.txt" 2> /dev/null || echo 0)
   off=$(awk -v p="$prefix" 'index($0, p) != 1' "$work/$id/messages.txt" 2> /dev/null | wc -l)
   gotp=$(awk -v p="$prefix" -v ns="$ns" '{ s = substr($0, length(p) + 1); i = index(s, ns); if (i == 0) { print "-"; next }
     s = substr(s, i + length(ns)); match(s, /^[A-Za-z0-9_:.-]+/); t = substr(s, 1, RLENGTH); sub(/:$/, "", t); print t }' \
     "$work/$id/messages.txt" 2> /dev/null | LC_ALL=C sort | paste -sd " " -)
-  if [ "$e" -eq 1 ] && [ "$got" -eq "$want" ] && [ "$off" -eq 0 ] && [ -n "$wantp" ] && [ "$gotp" = "$wantp" ]; then
+  # The exact text of every finding, sorted: a kill for the right shape but a different value, or a
+  # changed message format, is not this row's kill. An absent or short .messages list never matches.
+  wantm=$(jq -r '(.messages // [])[]' <<< "$row" | LC_ALL=C sort)
+  gotm=$(LC_ALL=C sort "$work/$id/messages.txt" 2> /dev/null)
+  nm=$(jq -r '.messages // [] | length' <<< "$row")
+  if [ "$e" -eq 1 ] && [ "$got" -eq "$want" ] && [ "$off" -eq 0 ] && [ -n "$wantp" ] && [ "$gotp" = "$wantp" ] \
+    && [ "$nm" -eq "$want" ] && [ "$gotm" = "$wantm" ]; then
     verdict=killed; killed=$((killed + 1))
   elif [ "$e" -ne 1 ]; then verdict="NOT-KILLED(exit $e)"
   elif [ "$off" -ne 0 ]; then verdict="IMPURE($off finding(s) not \"$prefix\")"
   elif [ "$got" -ne "$want" ]; then verdict="WRONG-COUNT(want $want)"
-  else verdict="WRONG-PROPERTY(want [$wantp] got [$gotp])"; fi
+  elif [ "$gotp" != "$wantp" ] || [ -z "$wantp" ]; then verdict="WRONG-PROPERTY(want [$wantp] got [$gotp])"
+  else verdict="WRONG-MESSAGE(the findings are not the row's .messages, byte for byte)"; fi
   printf '%s %-16s %-8s %-4s exit=%s findings=%s %s\n' "$id" "$comp" "$tgt" "${foc:-.}" "$e" "$got" "$verdict"
 done
 
@@ -100,13 +112,18 @@ n_surv=$(jq '.survive | length' "$table"); survived=0
 for ((i = 0; i < n_surv; i++)); do
   row=$(jq -c ".survive[$i]" "$table")
   id=$(jq -r .id <<< "$row")
+  # A survivor is only documented if it names the Rust assert that owns it.
+  ra=$(jq -r '.rust_assert // "" | if type == "string" then . else "" end' <<< "$row")
+  case "$(tr "[:upper:]" "[:lower:]" <<< "$ra" | tr -d "[:space:]")" in
+    "" | none | null | - | n/a | tbd | todo) echo "$id NO-RUST-ASSERT: a survive row must name the Rust assert that catches it"; continue ;;
+  esac
   if ! patched "$(jq -c .patch <<< "$row")" "$work/$id.json"; then
     echo "$id PATCH-FAILED-OR-VACUOUS: the patch errors or leaves the golden record unchanged"; continue
   fi
   judge "$work/$id.json" "$id"; e=$?
-  got=$(wc -l < "$work/$id/messages.txt" 2> /dev/null || echo missing)
+  got=$(cat "$work/$id/count.txt" 2> /dev/null || echo missing)
   if [ "$e" -eq 0 ] && [ "$(cat "$work/$id/verdict.txt")" = Pass ] && [ "$got" = 0 ]; then
-    survived=$((survived + 1)); echo "$id exit=0 findings=0 survived; caught by: $(jq -r .rust_assert <<< "$row")"
+    survived=$((survived + 1)); echo "$id exit=0 findings=0 survived; caught by: $ra"
   else
     echo "$id exit=$e findings=$got SURVIVOR-KILLED: the shapes now see what this row says they cannot"
   fi

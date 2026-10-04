@@ -1,6 +1,7 @@
 ont:d20/d20-run-v1 violates shape `d20-run` (in): ont:d20/agent_2_state: "running" is not one of ["done"]
 ont:d20/d20-run-v1 violates shape `d20-run` (in): ont:d20/keys_sent: "F12" is not one of ["Enter", "Escape", "Tab"]
 ont:d20/d20-run-v1 violates shape `d20-run` (in): ont:d20/operator_profile_touched: "true"^^xsd:boolean is not one of ["false"^^xsd:boolean]
+ont:d20/d20-run-v1 violates shape `d20-run` (lessThanOrEquals): ont:d20/agent_3_started_ms: "2000"^^xsd:integer is not <= "1620"^^xsd:integer of ont:d20/all_running_seen_ms
 ont:d20/d20-run-v1 violates shape `d20-run` (minCount): has 2 value(s) of ont:d20/screenshots_sha256, minCount is 3
 ont:d20/d20-run-v1 violates shape `d20-run` (minCount): has 4 value(s) of ont:d20/app_evidence, minCount is 5
 ont:d20/d20-run-v1 violates shape `d20-run` (pattern): ont:d20/agent_1_files: "ws/agent-2/result.md" does not match /^ws/agent-1/[^/]+$/
