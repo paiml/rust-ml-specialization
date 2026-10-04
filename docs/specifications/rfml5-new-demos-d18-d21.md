@@ -6,7 +6,7 @@ status: active
 # rfml5 new demos D18–D21: two agents on one server, the workflow as an ontology, and agent fan-out in the Antigravity app
 
 **Ticket:** PMAT-020 (#20), epic #19. **Branch:** `PMAT-020-rfml5-new-demos`.
-**Status:** spec, revised after quorum rounds 1 to 4 (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
+**Status:** spec, revised after quorum rounds 1 to 4b (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
 
 ## 0. Origin
 
@@ -234,7 +234,7 @@ The changes:
    - `verify_demo` applies `pin::parse_exact` to each tool a demo uses, as it already does for `apr` and `agy`; floors are refused.
    - D18 pins `apr` to the **series** 0.70.x (E1) and `pv = "=0.70.1"` exactly.
    - Measured: `pin::parse_exact` accepts only `"=X.Y.Z"` today. This phase adds one series form, `apr = "0.70.*"` → `SeriesPin { major: 0, minor: 70 }`. It accepts any `0.70.<n>` and refuses 0.69.x, 0.71.x, 0.701.x and any suffix such as `-dirty`. A series is not a floor: the upper bound is the minor version. The Receipt records `apr`'s full version string and the sha256 of the binary that ran, so a patch change is visible even though it is admitted. pv stays exact, because the planted `.expect` bytes depend on pv's message format.
-   - D19 pins `pv = "=0.70.1"`. D20 and D21 pin `antigravity = "=2.8.1"`, the asar sha and `pv = "=0.70.1"`.
+   - D19 pins `pv = "=0.70.1"`. D20 and D21 pin `antigravity = "=2.8.1"`, the asar sha and `pv = "=0.70.1"`. `agy-cdp`'s `e3-probe` (`E_4`) also pins `xdotool = "=3.20160805.1"`, checked against `xdotool version`.
 2. **Preflight** checks the installed `pv --version`, Antigravity's version and the asar sha256 against the pins.
    - A mismatch is `NotRun(VersionMismatch {…})`.
    - A changed asar under the same version string is a new reason, `AppMismatch { pinned_sha, found_sha }`; both seats that answered Q1 agree (§7). Auto-update makes this the likely failure.
@@ -348,11 +348,14 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 
 - The app runs in **its own process group** (`setsid` through `libc`). `Drop` kills only that group, and the driver never signals any pid outside it.
 - **One dedicated, reused demo profile.** D20 and D21 run on ONE profile directory that belongs to the course, outside the repo and outside the operator's own app, config and XDG directories. It holds `user-data/`, `extensions/`, `home/` and `xdg/`: the app gets `--user-data-dir` and `--extensions-dir` inside it, `--password-store=basic`, and `HOME` and every `XDG_*` directory point inside it too. A fresh scratch profile per take would need a fresh sign-in per take, so the profile is reused. The operator signs in on it once, by hand; a run whose profile is not signed in is `NotRun`. The demos never read, copy, list or receive a credential, and nothing from the profile is ever committed. Each agent's workspace is still fresh per take (below).
+- **The app gets a cleared environment.** The driver launches it with `env_clear()` and sets only `PATH`, `LANG`, `DISPLAY`, `HOME` and the `XDG_*` variables, each pointing inside the demo profile. Nothing the operator's shell exports, such as an API key, reaches the app. The driver reads the child's `/proc/<pid>/environ` after launch and asserts that its keys are exactly that set.
+- **The driver owns its display.** It starts its own `Xvfb` with `-displayfd` and reads the display number from that pipe; `xvfb-run -a` was only the §2 measurement harness. The same `DISPLAY` value is passed explicitly to the app and to `xdotool` in `E_4`, so neither can reach the operator's display.
 - **The driver attaches only to the port its own child opened.** The app is started with `--remote-debugging-port=0`, and the driver reads the chosen port from `DevToolsActivePort` in the demo profile. The listening socket's inode must belong to a pid in the child's group, checked through `/proc/<pid>/fd` and `/proc/net/tcp`.
 - **Single-instance forwarding is refused.** An Electron app may hand a second launch to an instance that is already running. If the child exits early, or no port appears in the demo profile, the run is `NotRun`, and the driver never looks for any other port.
 - **The operator's own state is untouched.** The operator's app, gemini, and XDG config, cache and state directories are listed by path, inode, size, mtime and ctime before and after the run, and the two listings must be equal. ctime is in the listing because no unprivileged process can set it: a write followed by restoring the old mtime and size still moves ctime, since the restore is itself a metadata change. Content is never hashed there, because hashing is reading, and those directories hold credentials. A canary file is planted beside them and must be unchanged afterwards. No operator path is ever passed to the app. `operator_profile_touched` in the record comes from that comparison.
 - **The demo profile's `extensions/` is fixed.** A manifest of it (path, size, sha256; extensions are code, not credentials) is taken before and after each run and must be equal, or the run fails. Only the operator changes the installed extensions, by hand. `no_js` covers the CDP channel; this manifest covers the extension channel, the other way script could enter the app.
-- **Stated limit: a read leaves no trace.** Reading a file changes no ctime, and atime is not reliable under `relatime`, so no listing can prove the operator's credentials were not read. That property is held by construction instead: the app's `HOME` and `XDG_*` point inside the demo profile, every path the driver opens comes from `RFML5_AGY_PROFILE` or the run directory, and an `xtask` lint refuses any `agy-cdp`, d20 or d21 source that calls `std::env::home_dir`, reads `HOME` or an `XDG_*` variable, or names the operator's app or gemini directories. The one exception is `agy-cdp`'s `operator_listing` module, which must resolve those directories to list them; the same lint refuses any `File::open`, `fs::read*` or `fs::copy` in it, so it can only `read_dir` and `symlink_metadata`.
+- **Stated limit: a read leaves no trace.** Reading a file changes no ctime, and atime is not reliable under `relatime`, so no listing can prove the operator's credentials were not read. That property is held by construction instead: the app's `HOME` and `XDG_*` point inside the demo profile, every path the driver opens comes from `RFML5_AGY_PROFILE` or the run directory, and an `xtask` lint refuses any `agy-cdp`, d20 or d21 source that calls `std::env::home_dir`, reads `HOME` or an `XDG_*` variable, or names the operator's app or gemini directories. The one exception is `agy-cdp`'s `operator_listing` module, which must resolve those directories to list them; the same lint refuses any `File::open`, `fs::read*` or `fs::copy` in it, so it can only `read_dir` and `symlink_metadata`. The lint also refuses `std::env::vars`/`vars_os`, any `env::var` of a name outside `RFML5_*`, and any string literal naming `/proc/self/environ`, an absolute home path or `~`. It reviews our own driver for a mistake; it is not a sandbox against hostile code.
+- **Stated limit: writes are judged in three places, not everywhere.** `stray_writes` covers the take's run tree, the operator listing covers the operator's state, and the extensions manifest covers the demo profile's code. The rest of the demo profile is the app's own state and changes on every run by design. The rest of the filesystem is not diffed. The app's `HOME` and `XDG_*` point inside the profile, so its ordinary writes land there.
 - **A leak sweep at teardown.** After the group is killed, no process from it may remain, and no socket may still be listening on its port.
 - **Workspaces are isolated.** Each agent's workspace `ws/agent-N/` is a fresh scratch directory. `agent_N_files` comes from a filesystem diff of that workspace, cross-checked against what the agent view reports the agent edited. A change anywhere else in the take's run tree counts in `stray_writes`; D21 carries the same count, also required to be 0.
 
@@ -420,20 +423,22 @@ The plan has seven phases. A **lane** is one independent reviewer in the quorum;
 |---|---|---|
 | ph1 spec grill (five-role quorum: security, crux, architecture, adversarial, quality; review only) | this spec and the four `spec/` + `fixtures/` dirs | `A_1`: the spec proofs below, both exit 0 |
 | ph2 harness | `demo-kit/**`, `xtask/**`, `Cargo.toml`, `Cargo.lock`, `.github/workflows/ci.yml`, plus manifests and skeleton bins for d18–d21 and `agy-cdp`. **All** shared-file edits land here. | `cargo test -p demo-kit -p xtask && cargo build --workspace && cargo run -q -p xtask -- verify` |
-| ph3 D18 | `d18-two-agents-one-server/**` | `cargo test -p d18-two-agents-one-server && cargo run -q -p xtask -- verify --only d18-two-agents-one-server`, then live run L3 Green |
-| ph4 agy-cdp + D20 | `agy-cdp/**`, `d20-agy-app-fanout/**` | `E_4`, the entry gate below, exit 0 first; then `cargo test -p agy-cdp -p d20-agy-app-fanout && cargo run -q -p xtask -- verify --only d20-agy-app-fanout`, then live run L4 Green |
-| ph5 D19 | `d19-workflow-ontology/**`; read-only: `d18-two-agents-one-server/spec/**` and `d18-two-agents-one-server/fixtures/**`, which D19 judges and never edits | `cargo test -p d19-workflow-ontology && cargo run -q -p xtask -- verify --only d19-workflow-ontology`, then live run L5 Green (pv is its only tool, so L5 needs no GPU and no sign-in) |
-| ph6 D21 | `d21-agy-app-fanin/**`; read-only: `agy-cdp/**` and `d20-agy-app-fanout/fixtures/**` (the role/name map), which ph4 owns and ph6 never edits | `E_6`, the L measurement (§5.4), exit 0 first; then `cargo test -p d21-agy-app-fanin && cargo run -q -p xtask -- verify --only d21-agy-app-fanin`, then live run L6 Green |
+| ph3 D18 | `d18-two-agents-one-server/**` | `cargo test -p d18-two-agents-one-server && cargo run -q -p xtask -- verify --only d18-two-agents-one-server` && `L3` (below), exit 0 |
+| ph4 agy-cdp + D20 | `agy-cdp/**`, `d20-agy-app-fanout/**` | `E_4` (below) && `cargo test -p agy-cdp -p d20-agy-app-fanout && cargo run -q -p xtask -- verify --only d20-agy-app-fanout` && `L4` (below), exit 0 |
+| ph5 D19 | `d19-workflow-ontology/**`; read-only: `d18-two-agents-one-server/spec/**` and `d18-two-agents-one-server/fixtures/**`, which D19 judges and never edits | `cargo test -p d19-workflow-ontology && cargo run -q -p xtask -- verify --only d19-workflow-ontology` && `L5` (below), exit 0 (pv is its only tool, so L5 needs no GPU and no sign-in) |
+| ph6 D21 | `d21-agy-app-fanin/**`; read-only: `agy-cdp/**` and `d20-agy-app-fanout/fixtures/**` (the role/name map), which ph4 owns and ph6 never edits | `E_6` (below; the L measurement, §5.4) && `cargo test -p d21-agy-app-fanin && cargo run -q -p xtask -- verify --only d21-agy-app-fanin` && `L6` (below), exit 0 |
 | ph7 pre-PR | the whole diff | five-role diff quorum (the ph1 roles), `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo run -q -p xtask -- verify` |
 
 **The live runs.** Each writes its Receipt under `$RFML5_RECEIPTS/<id>/<run_id>/`, and only a Green verdict passes. `NotRun` is never Green: a missing tool, a pin mismatch or a missing sign-in leaves the phase open, not done.
 
-- **L3 (D18):** `RFML5_MODELS=<dir> RFML5_DECLARED_APR=<apr 0.70.x> RFML5_RECEIPTS=<dir> cargo run -q --release -p d18-two-agents-one-server`
-- **L4 (D20):** `RFML5_AGY_BIN=<launcher> RFML5_AGY_PROFILE=<demo profile> RFML5_RECEIPTS=<dir> cargo run -q --release -p d20-agy-app-fanout`
-- **L5 (D19):** `RFML5_RECEIPTS=<dir> cargo run -q --release -p d19-workflow-ontology`
-- **L6 (D21):** `RFML5_AGY_BIN=<launcher> RFML5_AGY_PROFILE=<demo profile> RFML5_RECEIPTS=<dir> cargo run -q --release -p d21-agy-app-fanin`
-- **E_4 (ph4 entry gate, E3):** `RFML5_AGY_BIN=<launcher> RFML5_AGY_PROFILE=<demo profile> RFML5_RECEIPTS=<dir> cargo run -q --release -p agy-cdp --bin e3-probe`. Exit 0 only when all six controls are found and the F1/F12 DevTools counts are recorded; it writes the role/name map to `d20-agy-app-fanout/fixtures/role-name-map.json` for commit.
-- **E_6 (ph6 entry gate, L):** `RFML5_AGY_BIN=<launcher> RFML5_AGY_PROFILE=<demo profile> RFML5_RECEIPTS=<dir> cargo run -q --release -p d21-agy-app-fanin --bin measure-stop-latency`. Exit 0 only with at least 30 samples; it writes them and the computed L to `d21-agy-app-fanin/fixtures/stop-latency.json` for commit.
+**The live runs and entry gates read their inputs from the environment,** which the operator exports once: `RFML5_RECEIPTS` (all), `RFML5_MODELS` and `RFML5_DECLARED_APR` (L3), `RFML5_AGY_BIN` and `RFML5_AGY_PROFILE` (L4, L6, `E_4`, `E_6`). Each command below is therefore runnable as written; an unset variable is `NotRun`, never a default.
+
+- **L3 (D18):** `cargo run -q --release -p d18-two-agents-one-server`
+- **L4 (D20):** `cargo run -q --release -p d20-agy-app-fanout`
+- **L5 (D19):** `cargo run -q --release -p d19-workflow-ontology`
+- **L6 (D21):** `cargo run -q --release -p d21-agy-app-fanin`
+- **E_4 (ph4 entry gate, E3):** `cargo run -q --release -p agy-cdp --bin e3-probe`. Exit 0 only when all six controls are found and the F1/F12 DevTools counts are recorded; it writes the role/name map to `d20-agy-app-fanout/fixtures/role-name-map.json` for commit.
+- **E_6 (ph6 entry gate, L):** `cargo run -q --release -p d21-agy-app-fanin --bin measure-stop-latency`. Exit 0 only with at least 30 samples; it writes them and the computed L to `d21-agy-app-fanin/fixtures/stop-latency.json` for commit.
 
 L4, L6 and the measurement of L (§5.4) needed the operator to sign in once on the demos' own profile (E2). That is done, and the sign-in survived a cold restart; a take whose profile is found signed out is `NotRun`. Nothing here estimates a value it could not measure.
 
@@ -598,6 +603,14 @@ Recorded, not changed:
 
 - **Security (gpt-oss), nine findings: the planted fixtures contain the defects,** as in round 3. Each names a defect the planted record carries on purpose so that the shapes can be seen to refuse it.
 - **Security (gpt-oss): "D21's concurrency claim is unbacked".** D21's contract has no concurrency claim; `concurrent` is D20's (§1), and D21's own timing claims are the ordered stop moments and the latency bound L.
+
+**Round 4b** re-ran the two failing roles on the round-4 revision, both on gemini-3.1-pro-high. A gpt-oss-120b-medium security lane returned no evidence of reading the tree and was not counted. Both lanes confirmed the five round-4 changes and returned FAIL on new findings. What changed:
+
+- **Security: the app inherited the operator's environment,** so an exported API key reached it. The app now starts from a cleared environment, and its keys are asserted from `/proc/<pid>/environ` (§5.3).
+- **Security: the lint did not cover `/proc/self/environ` or other home paths.** It now refuses enumerating the environment, any non-`RFML5_*` variable, and literals naming `/proc/self/environ`, an absolute home path or `~`. It is stated as a review of our own driver, not a sandbox (§5.3).
+- **Security: `stray_writes` covers only the run tree.** True, and now a stated limit that names the three places writes are judged (§5.3).
+- **Architecture: `<dir>`-style placeholders and prose in the acceptance column were not runnable.** Inputs now come from exported `RFML5_*` variables, and each acceptance cell is a chain of commands and named runs joined by `&&` (§6).
+- **Architecture: `xdotool` could not learn `xvfb-run -a`'s display, and its pin was not in §4.** The driver owns its `Xvfb` through `-displayfd` and passes `DISPLAY` explicitly; `xdotool` is pinned in §4 item 1.
 
 **Escalations:**
 
