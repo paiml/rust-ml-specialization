@@ -6,7 +6,7 @@ status: active
 # rfml5 new demos D18–D21: two agents on one server, the workflow as an ontology, and agent fan-out in the Antigravity app
 
 **Ticket:** PMAT-020 (#20), epic #19. **Branch:** `PMAT-020-rfml5-new-demos`.
-**Status:** spec, revised after quorum rounds 1 to 4s (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 29 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
+**Status:** spec, revised after quorum rounds 1 to 4t (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 29 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
 
 ## 0. Origin
 
@@ -264,7 +264,8 @@ The changes:
    - D19 additionally runs the mutant matrix (§5.2).
    - D20 and D21 additionally check `app_evidence = EVIDENCE ∩ {m.method : m ∈ cdp_methods}`. With the shapes' `minCount: 5` this means each of the five evidence methods was sent at least once. pv cannot relate one property's values to another node's, so this cross-check is Rust's (M8).
    - `xtask verify --only <id>` is added so each build phase has its own acceptance command.
-   - `xtask promote-fixture <gate>` is added for the two entry gates, `e3-probe` and `measure-stop-latency`. Each variant names one file in that gate's latest run directory and one destination under a crate's `fixtures/`. It refuses a missing or empty source and an existing destination that differs unless `--replace` is given, and it prints the sha256 it wrote.
+   - `xtask promote-fixture <gate>` is added for the two entry gates, `e3-probe` and `measure-stop-latency`. Each variant names one file in that gate's latest run directory and one destination under a crate's `fixtures/`. It refuses a missing or empty source, and an existing destination that differs unless that destination is the unmeasured sentinel below or `--replace` is given, and it prints the sha256 it wrote.
+   - **Bootstrap.** An embedded fixture must exist before the first build, but its real content comes from a probe that needs the build. So ph2 commits each of the two fixtures as the sentinel `{"status":"unmeasured"}`. The typed parsers in `agy-cdp` and d21 accept the sentinel and return it as `Unmeasured`. The probes never read the fixture, so they build and run against it. D20 and D21 refuse it: a run whose role/name map or stop-latency L is `Unmeasured` is `NotRun(FixtureUnmeasured)`, never Green. After the first promote, a differing measured fixture is replaced only with `--replace`, so a re-measure is a decision, not a side effect.
    - The arm **ports** the two committed proof scripts, `xtask/proofs/spec-proofs.sh` and `xtask/proofs/verify-mutants.sh`, into Rust. Each of the scripts' twenty-nine `--self-test` sabotages becomes a test that must see exactly its named set of checks refuse, and, for the four mutant-table rows, its named reason. Once the port is green, ph2 deletes both scripts, so no gate is kept in two places.
 6. **CI installs pv.** `aprender-contracts-cli` 0.70.1 is published on crates.io (MIT).
    - The `course-5-demos` job gains `cargo install aprender-contracts-cli --version 0.70.1 --locked`, cached the same way as `bashrs`.
@@ -733,6 +734,11 @@ Recorded, not changed:
 
 - **architecture: committed fixtures had no permitted path across the confinement.** `e3-probe` and `measure-stop-latency` were to write into `fixtures/` in the source tree, and D21 was to read D20's role/name map, but §5.3 lets a confined bin write only under its run directory and refused any `include_str!` with a `..`. Now each gate writes into its run directory, and `xtask promote-fixture` (§4, outside the lint, closed enum) copies the file to its committed home. The role/name map moves to `agy-cdp/fixtures/` and is embedded by `agy-cdp` for d20 and d21. The include rule now admits a `..` that stays inside the including crate's own directory, so a crate can embed its own fixtures and nothing else.
 - **not adopted, each grounded:** security's credential read through a typed prompt (a stated limit, §7 4q: the driver types only hashed fixture prompts); crux's port binding and snapshot-based `concurrent` (each asks for more than the stated mechanism, which the spec delivers as written); architecture's review record outside ph1's scope (the record is the quorum's output, not a reviewed file); adversarial's first-namespace property match (pinned by the byte-exact message check) and the `n_surv > 0` guard (redundant with the `survived: 6/6` check, the same class as the empty-findings advisory).
+
+**Round 4t** ran all five roles on one text. Quality returned PASS; security, crux, architecture and adversarial returned FAIL. One defect was confirmed, by crux and architecture independently, and it was fixed:
+
+- **crux, architecture: the round-4s embed made a build cycle.** `agy-cdp` embeds the role/name map that its own bin `e3-probe` produces, so nothing could compile before the first measurement, and `promote-fixture` could not overwrite a placeholder without `--replace`. Same for d21 and `stop-latency.json`. Now ph2 commits both fixtures as the sentinel `{"status":"unmeasured"}` (§4). The probes build against it, D20 and D21 refuse it as `NotRun(FixtureUnmeasured)`, and `promote-fixture` replaces the sentinel without `--replace`.
+- **not adopted, each grounded:** security's `discover: false` (§5.3 builds that frame only through a typed constructor that hard-codes `discover: true`, already settled in rounds 2 and 3); adversarial's sorted-message comparison (stated design, on the advisory list) and multi-line splitting (findings are counted from pv's JSON, so a split changes the count and fails).
 
 **Escalations:**
 
