@@ -10,6 +10,7 @@
 //! - [`shapes`]: pv's SHACL gate over a run record, as a verdict.
 //! - [`verdict`]: Green only when every assertion held and nothing refused.
 //! - [`receipt`]: the JSON record a narration may cite, and nothing else.
+//! - [`pace`]: paced recording, each on-screen step released on its narration cue.
 //!
 //! Behind the default `process` feature (they spawn processes, open sockets
 //! or call `libc`):
@@ -27,6 +28,7 @@ pub mod fake_serve;
 #[cfg(feature = "process")]
 pub mod harness;
 pub mod manifest;
+pub mod pace;
 pub mod pin;
 pub mod preflight;
 pub mod receipt;
