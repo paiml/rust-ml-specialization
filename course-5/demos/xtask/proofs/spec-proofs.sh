@@ -260,7 +260,8 @@ for d in "${DEMOS[@]}"; do
     # The key goes after a guaranteed newline: appended to a last line with none, it would join that
     # line, the YAML would not parse, and a parse error would pass for the refusal (round 4r2).
     { cat "${yamls[0]}"; printf '\nfalsification_tests: []\n'; } > "$root/negative-$d.yaml"
-    if ! pv validate "${yamls[0]}" > "$root/validate-$d.txt" 2>&1; then bad "$d validate" "pv validate exit $?"
+    pv validate "${yamls[0]}" > "$root/validate-$d.txt" 2>&1; ve=$?
+    if [ "$ve" -ne 0 ]; then bad "$d validate" "pv validate exit $ve"
     elif pv validate "$root/negative-$d.yaml" > "$root/negative-$d.txt" 2>&1; then
       bad "$d validate" "pv validate accepted a contract with a duplicate key: it cannot fail"
     elif ! grep -q 'duplicate field' "$root/negative-$d.txt"; then
