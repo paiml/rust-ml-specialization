@@ -1,0 +1,24 @@
+id = "d20-agy-app-fanout"
+title = "Fan-out in the Antigravity app: three agents, one closed CDP channel"
+lesson = "rfml5/4.3"
+apr = "none"
+pv = "=0.70.1"
+antigravity = "=2.8.1"
+antigravity_asar_sha256 = "cb425e9ac098e9bc7958accc4bedb17a718c7506ae13548a0eb7cef55cdaaf26"
+host_class = "agy-host"
+needs = ["Xvfb"]
+
+[[step]]
+cmd = "cargo run -q --release -p d20-agy-app-fanout"
+
+[assert]
+shapes = "Green"
+agents = 3
+app_evidence = "EVIDENCE intersected with cdp_methods"
+exit = 0
+
+[record]
+target_duration_s = 300
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["shapes", "agents"]

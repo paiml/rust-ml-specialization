@@ -1,0 +1,22 @@
+id = "d19-workflow-ontology"
+title = "The workflow as an ontology: shapes that refuse a broken run"
+lesson = "rfml5/3.4"
+apr = "none"
+pv = "=0.70.1"
+host_class = "any"
+needs = []
+
+[[step]]
+cmd = "cargo run -q -p d19-workflow-ontology"
+
+[assert]
+shapes = "Green"
+mutants_killed = 18
+mutants_survived = 6
+exit = 0
+
+[record]
+target_duration_s = 300
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["shapes", "mutants_killed", "mutants_survived"]

@@ -1,9 +1,14 @@
-//! `cargo run -p xtask -- verify` — every demo's `demo.toml` parses, pins
-//! exactly, and its `src/main.rs` carries a provable contract.
+//! `cargo run -p xtask -- verify [--only <id>]` — every demo's `demo.toml` parses
+//! and pins exactly (apr may pin a series), its `src/main.rs` carries a
+//! provable contract, and the workspace passes the confinement lints.
 //! `cargo run -p xtask -- card <demo>` — print the demo's recording card.
+//! `cargo run -p xtask -- promote-fixture <gate> [--check|--replace]` — copy an
+//! entry gate's measurement to its committed fixture.
 
 mod card;
+mod confine;
 mod lint;
+mod promote;
 mod shell;
 
 use demo_kit::{pin, DemoManifest};
@@ -34,6 +39,41 @@ pub fn demo_dirs(root: &Path) -> Vec<PathBuf> {
     dirs
 }
 
+/// demo-pin-v1: `apr` is exact or a series (`0.70.*`); `agy`, `pv`,
+/// `antigravity` and `xdotool` are exact; an app pin carries its asar sha256.
+fn pin_findings(m: &DemoManifest) -> Vec<String> {
+    let mut findings = Vec::new();
+    if m.uses_apr() {
+        if let Err(bad) = pin::parse_exact_or_series(&m.apr) {
+            findings.push(format!(
+                "demo-pin-v1: apr pin {bad:?} is neither exact nor a series"
+            ));
+        }
+    }
+    for (tool, spec, used) in [
+        ("agy", &m.agy, m.uses_agy()),
+        ("pv", &m.pv, m.uses_pv()),
+        ("antigravity", &m.antigravity, m.uses_antigravity()),
+        ("xdotool", &m.xdotool, m.uses_xdotool()),
+    ] {
+        if used {
+            if let Err(bad) = pin::parse_exact(spec) {
+                findings.push(format!("demo-pin-v1: {tool} pin {bad:?} is not exact"));
+            }
+        }
+    }
+    let hex64 = |s: &str| s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit());
+    match (&m.antigravity_asar_sha256, m.uses_antigravity()) {
+        (Some(s), true) if !hex64(s) => findings.push(format!(
+            "demo-pin-v1: antigravity_asar_sha256 {s:?} is not 64 hex"
+        )),
+        (None, true) => findings
+            .push("demo-pin-v1: antigravity is pinned without antigravity_asar_sha256".into()),
+        _ => {}
+    }
+    findings
+}
+
 /// All findings for one demo directory; empty means it passes.
 pub fn verify_demo(dir: &Path) -> Vec<String> {
     let mut findings = Vec::new();
@@ -48,16 +88,7 @@ pub fn verify_demo(dir: &Path) -> Vec<String> {
             manifest.id
         ));
     }
-    for (tool, spec, used) in [
-        ("apr", &manifest.apr, manifest.uses_apr()),
-        ("agy", &manifest.agy, manifest.uses_agy()),
-    ] {
-        if used {
-            if let Err(bad) = pin::parse_exact(spec) {
-                findings.push(format!("demo-pin-v1: {tool} pin {bad:?} is not exact"));
-            }
-        }
-    }
+    findings.extend(pin_findings(&manifest));
     if let Some(m) = &manifest.model {
         if m.sha256.len() != 64 || !m.sha256.bytes().all(|b| b.is_ascii_hexdigit()) {
             findings.push(format!("model sha256 {:?} is not 64 hex", m.sha256));
@@ -100,8 +131,17 @@ pub fn verify_demo(dir: &Path) -> Vec<String> {
     findings
 }
 
-fn verify(root: &Path) -> ExitCode {
-    let dirs = demo_dirs(root);
+/// `verify [--only <id>]`: every demo (or the one named), then the workspace
+/// confinement lints, which hold for every phase.
+fn verify(root: &Path, only: Option<&str>) -> ExitCode {
+    let mut dirs = demo_dirs(root);
+    if let Some(id) = only {
+        dirs.retain(|d| d.file_name().is_some_and(|n| n == id));
+        if dirs.is_empty() {
+            println!("FAIL --only {id}: no such demo");
+            return ExitCode::FAILURE;
+        }
+    }
     let mut failed = 0;
     for d in &dirs {
         let f = verify_demo(d);
@@ -120,10 +160,54 @@ fn verify(root: &Path) -> ExitCode {
         println!("FAIL no demos found: a gate over nothing is not a gate");
         return ExitCode::FAILURE;
     }
-    if failed == 0 {
+    let lints = confine::lint_workspace(root);
+    for l in &lints {
+        println!("FAIL confine: {l}");
+    }
+    println!("confine: {} findings", lints.len());
+    if failed == 0 && lints.is_empty() {
         ExitCode::SUCCESS
     } else {
         ExitCode::FAILURE
+    }
+}
+
+fn promote_fixture(root: &Path, args: &[String]) -> ExitCode {
+    let usage = "usage: xtask promote-fixture <e3-probe|measure-stop-latency> [--check|--replace]";
+    let Some(gate) = args.first().and_then(|g| promote::Gate::parse(g)) else {
+        eprintln!("{usage}");
+        return ExitCode::from(2);
+    };
+    let mode = match args.get(1).map(String::as_str) {
+        None => promote::Mode::Promote,
+        Some("--check") => promote::Mode::Check,
+        Some("--replace") => promote::Mode::Replace,
+        Some(_) => {
+            eprintln!("{usage}");
+            return ExitCode::from(2);
+        }
+    };
+    let receipts = match std::env::var_os("RFML5_RECEIPTS") {
+        Some(r) => PathBuf::from(r),
+        None if mode == promote::Mode::Check => PathBuf::new(),
+        None => {
+            eprintln!("promote-fixture: RFML5_RECEIPTS is not set");
+            return ExitCode::FAILURE;
+        }
+    };
+    match promote::promote(&receipts, root, gate, mode) {
+        Ok(msg) if mode == promote::Mode::Check => {
+            println!("promote-fixture --check: {msg}");
+            ExitCode::SUCCESS
+        }
+        Ok(sha) => {
+            println!("promote-fixture: wrote {} sha256 {sha}", gate.destination());
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            println!("FAIL promote-fixture: {e}");
+            ExitCode::FAILURE
+        }
     }
 }
 
@@ -131,7 +215,15 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let root = demos_root();
     match args.first().map(String::as_str) {
-        Some("verify") => verify(&root),
+        Some("verify") => match (args.get(1).map(String::as_str), args.get(2)) {
+            (None, _) => verify(&root, None),
+            (Some("--only"), Some(id)) => verify(&root, Some(id)),
+            _ => {
+                eprintln!("usage: xtask verify [--only <id>]");
+                ExitCode::from(2)
+            }
+        },
+        Some("promote-fixture") => promote_fixture(&root, &args[1..]),
         Some("card") => {
             let Some(name) = args.get(1) else {
                 eprintln!("usage: xtask card <demo-dir>");
@@ -149,7 +241,7 @@ fn main() -> ExitCode {
             }
         }
         _ => {
-            eprintln!("usage: xtask verify | xtask card <demo-dir>");
+            eprintln!("usage: xtask verify [--only <id>] | xtask card <demo-dir> | xtask promote-fixture <gate> [--check|--replace]");
             ExitCode::from(2)
         }
     }
