@@ -209,6 +209,7 @@ name = "d19-workflow-ontology"
 version = "0.1.0"
 dependencies = [
  "demo-kit",
+ "serde_json",
 ]
 
 [[package]]
