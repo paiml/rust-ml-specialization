@@ -1,1 +1,50 @@
-{"demo":"d19-workflow-ontology","pv_version":"0.70.1","subject":"d18-run-v1","validate_exit":0,"extract_exit":0,"extract_check_exit":0,"extract_drift_exit":1,"golden_exit":0,"golden_pc":"fired","w3c_passed":19,"w3c_total":19,"planted_exit":1,"planted_findings":6,"planted_matches_expect":true,"mutants":[{"id":"m01","component":"in","target":"d18-run","exit":1,"named":true},{"id":"m02","component":"in","target":"d18-run","exit":1,"named":true},{"id":"m03","component":"datatype","target":"d18-run","exit":1,"named":true},{"id":"m04","component":"lessThanOrEquals","target":"d18-run","exit":1,"named":true},{"id":"m05","component":"lessThanOrEquals","target":"d18-run","exit":1,"named":true},{"id":"m06","component":"pattern","target":"d18-run","exit":1,"named":true},{"id":"m07","component":"minCount","target":"d18-run","exit":1,"named":true},{"id":"m08","component":"maxCount","target":"d18-file","exit":1,"named":true},{"id":"m09","component":"lessThanOrEquals","target":"d18-item","exit":1,"named":true},{"id":"m10","component":"in","target":"d18-item","exit":1,"named":true},{"id":"m11","component":"closed","target":"d18-run","exit":1,"named":true},{"id":"m12","component":"minCount","target":"d18-run","exit":1,"named":true},{"id":"m13","component":"in","target":"d18-run","exit":1,"named":true},{"id":"m14","component":"in","target":"d18-run","exit":1,"named":true}]}
+{
+  "demo": "d19-workflow-ontology",
+  "pv_version": "0.70.1",
+  "subject": "d18-run-v1",
+  "validate_exit": 0,
+  "extract_exit": 0,
+  "extract_check_exit": 0,
+  "extract_drift_exit": 1,
+  "golden_exit": 0,
+  "golden_pc": "fired",
+  "w3c_passed": 19,
+  "w3c_total": 19,
+  "planted_exit": 1,
+  "planted_findings": 5,
+  "planted_matches_expect": true,
+  "killed": [
+    "m01",
+    "m02",
+    "m03",
+    "m04",
+    "m05",
+    "m06",
+    "m07",
+    "m08",
+    "m09",
+    "m10",
+    "m11",
+    "m12",
+    "m13",
+    "m14",
+    "m15",
+    "m16"
+  ],
+  "survived": [
+    "s01",
+    "s02",
+    "s03",
+    "s04",
+    "s05"
+  ],
+  "components_killed": [
+    "closed",
+    "datatype",
+    "in",
+    "lessThanOrEquals",
+    "maxCount",
+    "minCount",
+    "pattern"
+  ]
+}

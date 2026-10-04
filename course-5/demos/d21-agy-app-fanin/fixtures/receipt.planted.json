@@ -2,47 +2,93 @@
   "demo": "d21-agy-app-fanin",
   "app_version": "2.8.1",
   "app_asar_sha256": "cb425e9ac098e9bc7958accc4bedb17a718c7506ae13548a0eb7cef55cdaaf26",
-  "js_methods_sent": 0,
-  "agents_started": 3,
-  "red_agent": "agent-3",
-  "stops": [
-    {
-      "agent": "agent-1",
-      "red_seen_ms": 5120,
-      "stop_sent_ms": 5100,
-      "stopped_ms": 5602
-    },
-    {
-      "agent": "agent-3",
-      "red_seen_ms": 5120,
-      "stop_sent_ms": 5133,
-      "stopped_ms": 5710
-    }
-  ],
-  "line_stopped": true,
-  "merged": true,
-  "refusal_names": "agent-2",
-  "reduce_orders": 6,
-  "reduce_digest_per_order": [
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7",
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7",
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7",
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7",
-    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7"
-  ],
+  "cdp_protocol": "1.3",
+  "operator_profile_touched": false,
+  "devtools_targets_opened": 0,
   "cdp_methods": [
+    {
+      "method": "Target.setDiscoverTargets",
+      "count": 1
+    },
     {
       "method": "Target.getTargets",
       "count": 2
+    },
+    {
+      "method": "Target.attachToTarget",
+      "count": 1
     },
     {
       "method": "Accessibility.getFullAXTree",
       "count": 19
     },
     {
+      "method": "DOM.getBoxModel",
+      "count": 7
+    },
+    {
+      "method": "Input.dispatchMouseEvent",
+      "count": 18
+    },
+    {
+      "method": "Input.insertText",
+      "count": 3
+    },
+    {
+      "method": "Input.dispatchKeyEvent",
+      "count": 6
+    },
+    {
+      "method": "Page.captureScreenshot",
+      "count": 3
+    },
+    {
       "method": "Runtime.callFunctionOn",
-      "count": 2
+      "count": 1
     }
+  ],
+  "app_evidence": [
+    "Accessibility.getFullAXTree",
+    "Input.dispatchMouseEvent"
+  ],
+  "keys_sent": [
+    "Enter",
+    "F12"
+  ],
+  "agents_started": 3,
+  "red_agent": "agent-3",
+  "red_seen_ms": 5120,
+  "stop_agent_1_sent_ms": 5100,
+  "stop_agent_1_stopped_ms": 5602,
+  "stop_agent_2_sent_ms": 5133,
+  "stop_agent_2_stopped_ms": 5710,
+  "running_at_red": [
+    "agent-1",
+    "agent-2"
+  ],
+  "stopped_agents": [
+    "agent-1",
+    "agent-3"
+  ],
+  "writes_after_stop": 0,
+  "merged": true,
+  "refusal_names": [
+    "agent-2"
+  ],
+  "reduce_orders": [
+    "1-2-3",
+    "1-3-2",
+    "2-1-3",
+    "2-3-1",
+    "3-1-2",
+    "1-2-3"
+  ],
+  "reduce_digest_per_order": [
+    "beb5cec22ba7061bacd487bfcbf627cfc5ef80eb44233de990e9be035070f40d",
+    "beb5cec22ba7061bacd487bfcbf627cfc5ef80eb44233de990e9be035070f40d",
+    "beb5cec22ba7061bacd487bfcbf627cfc5ef80eb44233de990e9be035070f40d",
+    "beb5cec22ba7061bacd487bfcbf627cfc5ef80eb44233de990e9be035070f40d",
+    "beb5cec22ba7061bacd487bfcbf627cfc5ef80eb44233de990e9be035070f400",
+    "beb5cec22ba7061bacd487bfcbf627cfc5ef80eb44233de990e9be035070f40d"
   ]
 }

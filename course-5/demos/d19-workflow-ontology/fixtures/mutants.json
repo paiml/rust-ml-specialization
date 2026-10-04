@@ -1,182 +1,347 @@
-[
-  {
-    "id": "m01",
-    "component": "in",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/decided_by",
-        "value": "writer"
-      }
-    ]
-  },
-  {
-    "id": "m02",
-    "component": "in",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/server_spawns",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "m03",
-    "component": "datatype",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/server_spawns",
-        "value": "1"
-      }
-    ]
-  },
-  {
-    "id": "m04",
-    "component": "lessThanOrEquals",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/server_pid_end",
-        "value": 41388
-      }
-    ]
-  },
-  {
-    "id": "m05",
-    "component": "lessThanOrEquals",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/digest_pipelined",
-        "value": "0000000000000000000000000000000000000000000000000000000000000000"
-      }
-    ]
-  },
-  {
-    "id": "m06",
-    "component": "pattern",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/digest_sequential",
-        "value": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-      }
-    ]
-  },
-  {
-    "id": "m07",
-    "component": "minCount",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "remove",
-        "path": "/decided_by"
-      }
-    ]
-  },
-  {
-    "id": "m08",
-    "component": "maxCount",
-    "target": "d18-file",
-    "focus": ".files.0",
-    "patch": [
-      {
-        "op": "add",
-        "path": "/files/0/writers/-",
-        "value": "checker"
-      }
-    ]
-  },
-  {
-    "id": "m09",
-    "component": "lessThanOrEquals",
-    "target": "d18-item",
-    "focus": ".items.2",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/items/2/checker_start_ms",
-        "value": 3301
-      }
-    ]
-  },
-  {
-    "id": "m10",
-    "component": "in",
-    "target": "d18-item",
-    "focus": ".items.0",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/items/0/decision",
-        "value": "maybe"
-      }
-    ]
-  },
-  {
-    "id": "m11",
-    "component": "closed",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "add",
-        "path": "/speedup",
-        "value": 1.05
-      }
-    ]
-  },
-  {
-    "id": "m12",
-    "component": "minCount",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "remove",
-        "path": "/items/3"
-      }
-    ]
-  },
-  {
-    "id": "m13",
-    "component": "in",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/model_sha256",
-        "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-      }
-    ]
-  },
-  {
-    "id": "m14",
-    "component": "in",
-    "target": "d18-run",
-    "focus": "",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/apr_version",
-        "value": "0.69.3"
-      }
-    ]
-  }
-]
+{
+  "subject": "d18-run-v1",
+  "node": "ont:d18/d18-run-v1",
+  "kill": [
+    {
+      "id": "m01",
+      "component": "in",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/server_spawns",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "id": "m02",
+      "component": "in",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "add",
+          "path": "/checker_files/-",
+          "value": "out/answers.json"
+        }
+      ]
+    },
+    {
+      "id": "m03",
+      "component": "in",
+      "target": "d18-item",
+      "focus": ".q1",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q1/decision",
+          "value": "maybe"
+        }
+      ]
+    },
+    {
+      "id": "m04",
+      "component": "datatype",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 2,
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/server_start_ticks_start",
+          "value": "918273"
+        },
+        {
+          "op": "replace",
+          "path": "/server_start_ticks_end",
+          "value": "918273"
+        }
+      ]
+    },
+    {
+      "id": "m05",
+      "component": "datatype",
+      "target": "d18-item",
+      "focus": ".q2",
+      "findings": 2,
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q2/seq_writer_end_ms",
+          "value": "3460"
+        },
+        {
+          "op": "replace",
+          "path": "/q2/seq_checker_start_ms",
+          "value": "3460"
+        }
+      ]
+    },
+    {
+      "id": "m06",
+      "component": "pattern",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 2,
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/digest_sequential",
+          "value": "5D2B7C1E0F9A4B3C8D7E6F5A4B3C2D1E0F9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C"
+        },
+        {
+          "op": "replace",
+          "path": "/digest_pipelined",
+          "value": "5D2B7C1E0F9A4B3C8D7E6F5A4B3C2D1E0F9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C"
+        }
+      ]
+    },
+    {
+      "id": "m07",
+      "component": "lessThanOrEquals",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/server_pid_end",
+          "value": 41388
+        }
+      ]
+    },
+    {
+      "id": "m08",
+      "component": "lessThanOrEquals",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/server_start_ticks_end",
+          "value": 918274
+        }
+      ]
+    },
+    {
+      "id": "m09",
+      "component": "lessThanOrEquals",
+      "target": "d18-item",
+      "focus": ".q3",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q3/pipe_checker_start_ms",
+          "value": 5501
+        }
+      ]
+    },
+    {
+      "id": "m10",
+      "component": "minCount",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/writer_files"
+        }
+      ]
+    },
+    {
+      "id": "m11",
+      "component": "minCount",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/q4"
+        }
+      ]
+    },
+    {
+      "id": "m12",
+      "component": "minCount",
+      "target": "d18-item",
+      "focus": ".q2",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/q2/decision"
+        }
+      ]
+    },
+    {
+      "id": "m13",
+      "component": "maxCount",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q2",
+          "value": [
+            {
+              "seq_writer_end_ms": 3460,
+              "seq_checker_start_ms": 3461,
+              "pipe_writer_end_ms": 3390,
+              "pipe_checker_start_ms": 3391,
+              "decision": "accept"
+            },
+            {
+              "seq_writer_end_ms": 3460,
+              "seq_checker_start_ms": 3461,
+              "pipe_writer_end_ms": 3390,
+              "pipe_checker_start_ms": 3391,
+              "decision": "accept"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m14",
+      "component": "maxCount",
+      "target": "d18-item",
+      "focus": ".q1",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q1/decision",
+          "value": [
+            "accept",
+            "reject"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m15",
+      "component": "closed",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "add",
+          "path": "/speedup",
+          "value": 1.05
+        }
+      ]
+    },
+    {
+      "id": "m16",
+      "component": "closed",
+      "target": "d18-item",
+      "focus": ".q1",
+      "findings": 1,
+      "patch": [
+        {
+          "op": "add",
+          "path": "/q1/note",
+          "value": "x"
+        }
+      ]
+    }
+  ],
+  "survive": [
+    {
+      "id": "s01",
+      "why": "two equal, well-formed digests: the sha256 of the empty string, in both",
+      "rust_assert": "the program recomputes sha256 over out/answers.json ‖ out/verdicts.json after each schedule and asserts it equals the recorded digest",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/digest_sequential",
+          "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "op": "replace",
+          "path": "/digest_pipelined",
+          "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "id": "s02",
+      "why": "two equal pids that are not the server: pid 1 in both",
+      "rust_assert": "the pid is read from the spawned child handle, and /proc/<pid>/exe must resolve to the pinned apr binary",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/server_pid_start",
+          "value": 1
+        },
+        {
+          "op": "replace",
+          "path": "/server_pid_end",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "s03",
+      "why": "one decision flipped, q3 reject to accept",
+      "rust_assert": "decisions are parsed from out/verdicts.json, the file only the checker wrote, and both digests cover that file",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q3/decision",
+          "value": "accept"
+        }
+      ]
+    },
+    {
+      "id": "s04",
+      "why": "one item shifted 100 s later, all four timestamps alike, so q2 now follows q3",
+      "rust_assert": "every timestamp comes from one monotonic clock at the sink; items are increasing in i within a schedule and each is at most that schedule's elapsed time",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q2/seq_writer_end_ms",
+          "value": 103460
+        },
+        {
+          "op": "replace",
+          "path": "/q2/seq_checker_start_ms",
+          "value": 103461
+        },
+        {
+          "op": "replace",
+          "path": "/q2/pipe_writer_end_ms",
+          "value": 103390
+        },
+        {
+          "op": "replace",
+          "path": "/q2/pipe_checker_start_ms",
+          "value": 103391
+        }
+      ]
+    },
+    {
+      "id": "s05",
+      "why": "writer_files lists out/answers.json twice: an equivalent mutant, since RDF values are a set",
+      "rust_assert": "each role sink opens its file with create_new, so a second open of one path is an error, not a second entry",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/writer_files/-",
+          "value": "out/answers.json"
+        }
+      ]
+    }
+  ]
+}
