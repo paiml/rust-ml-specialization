@@ -6,7 +6,7 @@ status: active
 # rfml5 new demos D18–D21: two agents on one server, the workflow as an ontology, and agent fan-out in the Antigravity app
 
 **Ticket:** PMAT-020 (#20), epic #19. **Branch:** `PMAT-020-rfml5-new-demos`.
-**Status:** spec, revised after quorum rounds 1 to 4p (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
+**Status:** spec, revised after quorum rounds 1 to 4q (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
 
 ## 0. Origin
 
@@ -55,7 +55,7 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
   1. validates the contract;
   2. judges the golden record (Pass, with the positive control fired);
   3. judges the planted record (exactly the expected five findings);
-  4. runs the 23-row mutant table in `fixtures/mutants.json`. Each row is an RFC 6902 JSON Patch of the golden record:
+  4. runs the 24-row mutant table in `fixtures/mutants.json`. Each row is an RFC 6902 JSON Patch of the golden record:
      - 18 **kill** rows must each be rejected *purely*: exit 1, the exact finding count, every finding naming the intended focus node, shape and SHACL component, and the findings naming exactly the row's `properties`;
      - 6 **survive** rows must each pass. Each is a defect the shapes cannot see, and the row names the Rust assert that catches it;
   5. shows the A-box is tamper-evident through `pv extract spec --check`;
@@ -94,7 +94,7 @@ Lesson numbers are proposals, marked **[U]** until the course outline places the
 - **What it claims** (`spec/d21-run-v1.yaml`). Every timing claim is a relation between two named properties (`red_seen_ms`, `stop_agent_N_sent_ms`, `stop_agent_N_stopped_ms`):
   - `stop_the_line`: red_seen ≤ stop_sent ≤ stopped for agents 1 and 2; `stopped_agents = running_at_red = {agent-1, agent-2}`; and `writes_after_stop = 0`.
   - `refuse_on_red`: `merged = false`, and `refusal_names = {agent-3}`, the lowest red agent id.
-  - `order_free`: all six orders ran, and they produced one digest.
+  - `order_free`: all six orders ran, and they produced one digest. The record names the six orders but cannot show that each digest came from a different permutation. That is held in Rust: the live run builds every order's input through the one `permutations()` helper that the reducer's unit tests cover (§5.4, six permutations plus a constant-reducer negative control), and `reduce_orders` is that helper's output.
   - `app_driven`, `no_js` and `operator_untouched`: as in D20, with the same evidence, the same twenty methods, the same three keys and the same DevTools count. The stops send no JavaScript either. `operator_untouched` is as strong as D20's: the same before/after listing equality, and the record also carries `stray_writes = 0`.
 
 ## 2. Measured facts this spec rests on
@@ -417,7 +417,7 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 - **Each stop is that agent's own control, and the stop is read back.** Each `stop_agent_N_sent_ms` is the moment of a click on agent N's own stop control: its accessibility node, then `DOM.getBoxModel`, then `Input.dispatchMouseEvent` at the box centre. `stop_agent_N_stopped_ms` is the moment the tree first reports agent N stopped. The shapes order the three moments (FALSIFY-D21-001 and -007); only the program knows which node was clicked.
 - **No writes after the stop, judged by content, not by time.** The two workspace snapshots compare path, size and sha256, so no mtime granularity or slack enters the check.
 - **The reducer is a pure function** of the multiset of results: no clock, no I/O, `BTreeMap` order. Its unit tests:
-  - all six permutations, on several different result sets, give one digest per set;
+  - all six permutations, built by the same `permutations()` helper the live run uses for `reduce_orders`, give one digest per set on several different result sets;
   - **sensitivity:** changing one result changes the digest. A constant reducer, run as a negative control, must fail this test. That proves the test can fail; without it, a reducer that ignores its input would pass as order-free.
   - with several red results, the refusal names the lowest red id in every arrival order.
 - **`refusal_names` is the lowest red agent id**, and `merged` is false whenever any result is red.
@@ -713,7 +713,14 @@ Recorded, not changed:
 **Round 4p** re-ran crux, adversarial and quality on the same text, because their round-4 PASS predated rounds 4b to 4n. Crux returned PASS. Adversarial and quality each returned FAIL with one finding. Neither breaks a stated guarantee, but each names a real gap, and both were closed:
 
 - **adversarial: the self-test row `d21-spec-deleted` named no reason,** so deleting the one-contract guard left the row green. The row now requires the reason `spec/ must hold exactly one contract`, and deleting the guard was measured to fail it (27/28).
-- **quality: FALSIFY-D18-005 was exercised by no fixture.** Mutant m18 now adds `out/verdicts.json` to `writer_files`, and `sh:in` kills it purely. The mutant table, D19's contract (`killed` minCount 18), both D19 receipts and the counts in this spec moved from 17 kill rows to 18.
+- **quality: FALSIFY-D18-005 was exercised by no fixture.** Mutant m18 now adds `out/verdicts.json` to `writer_files`, and `sh:in` kills it purely. The mutant table, D19's contract (`killed` minCount 18) and the counts in this spec moved from 17 kill rows to 18. The golden D19 receipt now lists 18 kills, and the planted one 17, which stays one short so that `minCount` fires.
+
+**Round 4q** ran all five roles on one text, so that the review record rests on a single round. All five returned FAIL, and four of them on the same real defect:
+
+- **all five: the 17-to-18 change missed the spelled-out counts.** D19's contract still said "twenty-three mutants" and "seventeen kill rows", and §6 said "23-row". All three now say twenty-four, eighteen and 24-row. The Round 4p record also said that both D19 receipts moved to 18; it now says what changed, which is golden 18 and planted 17.
+- **security: three findings that assume a hostile author** (a spawned `Command` inside a demo, a `javascript:` link in the agent view, an agent that reads back a credential). Each is a stated limit, not a gap: §5.3 says the lint "reviews our own driver for a mistake; it is not a sandbox against hostile code", `Command` is already refused outside the launcher, and the demo never holds a credential to read back. Not adopted.
+- **quality: tampering with a pinned digest is not caught.** It is: a changed digest is the drift case, and `extract_drift_exit` turns it into a non-zero exit. Not adopted.
+- **crux: `order_free` does not prove that each digest came from a different permutation.** True of the record alone, and now said so in §1. The guarantee is held in Rust, by the one `permutations()` helper that both the live run and the reducer's unit tests use (six permutations plus a constant-reducer negative control). Kept as an advisory.
 
 **Escalations:**
 

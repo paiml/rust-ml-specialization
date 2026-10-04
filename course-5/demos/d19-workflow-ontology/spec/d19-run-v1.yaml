@@ -6,7 +6,7 @@ scope: >
   work on it: validate, extract the run record as RDF, catch an
   after-the-fact edit with extract --check, judge the golden and planted
   records, run pv's W3C SHACL-Core cases, and run a fixed table of
-  twenty-three mutants of the golden record. Seventeen must be killed PURELY:
+  twenty-four mutants of the golden record. Eighteen must be killed PURELY:
   every finding names the intended node, shape, component and property, and
   the count is exact. Six must survive: each is a defect the shapes cannot see, and
   its row names the Rust assert that catches it. Every field below is
@@ -61,7 +61,7 @@ shapes:
 equations:
   every_mutant_killed:
     formula: "∀ m ∈ M: exit(m) = 1 ∧ |findings(m)| = n(m) ∧ ∀ f ∈ findings(m): node(f) = node(m) ∧ shape(f) = target(m) ∧ component(f) = component(m) ∧ props(findings(m)) = properties(m)"
-    domain: "M, the seventeen kill rows of fixtures/mutants.json, each a patch of the D18 golden record; props(f) is the first ns-qualified token after the finding's prefix (the constraint's path), or - where pv 0.70.1 names none (datatype)"
+    domain: "M, the eighteen kill rows of fixtures/mutants.json, each a patch of the D18 golden record; props(f) is the first ns-qualified token after the finding's prefix (the constraint's path), or - where pv 0.70.1 names none (datatype)"
   survivors_documented:
     formula: "∀ s ∈ S: exit(s) = 0 ∧ findings(s) = ∅ ∧ rust_assert(s) ≠ ∅"
     domain: "S, the six survive rows: defects the shapes cannot see, each owned by an assert in the D18 program"
