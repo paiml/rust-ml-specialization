@@ -1,0 +1,64 @@
+{
+  "demo": "d21-agy-app-fanin",
+  "app_version": "2.8.1",
+  "app_asar_sha256": "cb425e9ac098e9bc7958accc4bedb17a718c7506ae13548a0eb7cef55cdaaf26",
+  "js_methods_sent": 0,
+  "agents_started": 3,
+  "red_agent": "agent-3",
+  "stops": [
+    {
+      "agent": "agent-1",
+      "red_seen_ms": 5120,
+      "stop_sent_ms": 5131,
+      "stopped_ms": 5602
+    },
+    {
+      "agent": "agent-2",
+      "red_seen_ms": 5120,
+      "stop_sent_ms": 5133,
+      "stopped_ms": 5710
+    }
+  ],
+  "line_stopped": true,
+  "merged": false,
+  "refusal_names": "agent-3",
+  "reduce_orders": 6,
+  "reduce_digest_per_order": [
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7",
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7",
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7",
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7",
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7",
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7"
+  ],
+  "cdp_methods": [
+    {
+      "method": "Target.getTargets",
+      "count": 2
+    },
+    {
+      "method": "Target.attachToTarget",
+      "count": 1
+    },
+    {
+      "method": "Accessibility.getFullAXTree",
+      "count": 19
+    },
+    {
+      "method": "DOM.getBoxModel",
+      "count": 7
+    },
+    {
+      "method": "Input.dispatchMouseEvent",
+      "count": 18
+    },
+    {
+      "method": "Input.insertText",
+      "count": 3
+    },
+    {
+      "method": "Page.captureScreenshot",
+      "count": 3
+    }
+  ]
+}

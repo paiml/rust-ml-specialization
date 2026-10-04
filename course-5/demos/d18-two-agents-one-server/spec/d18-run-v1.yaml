@@ -1,0 +1,123 @@
+name: d18-run
+version: "1.0.0"
+scope: >
+  The run record one D18 run emits. Two agents, the writer and the checker,
+  share ONE resident `apr serve` process. The pair runs twice, once
+  sequentially and once pipelined, so the checker reviews item i while the
+  writer drafts item i+1. The closed shapes below are the interface
+  definition of that record: a key they do not declare is a violation.
+status: active
+metadata:
+  version: "1.0.0"
+  kind: pattern
+  created: '2026-10-04'
+  last_modified: '2026-10-04'
+  author: PAIML Engineering
+  description: >
+    Two agents with distinct roles on one resident model server. Nothing about
+    speed is claimed: apr serve 0.70.1 queues concurrent requests (measured
+    2026-10-04, ~5% gain). The claim is roles, one load, causality, disjoint
+    writes, and outputs that do not depend on the schedule.
+  references:
+    - 'paiml/rust-ml-specialization#20'
+    - 'paiml/rust-ml-specialization#19'
+entity:
+  type: json
+  ref: receipt.json
+vocabulary:
+  prefix: d18
+  root_class: ont:D18Run
+  nested:
+    items: ont:D18Item
+    files: ont:D18File
+shapes:
+  - id: d18-run
+    targetClass: ont:D18Run
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d18:demo, minCount: 1, maxCount: 1, in: [d18-two-agents-one-server]}
+      - {path: d18:apr_version, minCount: 1, maxCount: 1, in: ["0.70.1"]}
+      - {path: d18:model_sha256, minCount: 1, maxCount: 1, in: ["00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4"]}
+      - {path: d18:server_spawns, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [1]}
+      - {path: d18:server_pid_start, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:server_pid_end}
+      - {path: d18:server_pid_end, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:server_pid_start}
+      - {path: d18:decided_by, minCount: 1, maxCount: 1, in: [checker]}
+      - {path: d18:digest_sequential, minCount: 1, maxCount: 1, pattern: '^[0-9a-f]{64}$', lessThanOrEquals: d18:digest_pipelined}
+      - {path: d18:digest_pipelined, minCount: 1, maxCount: 1, pattern: '^[0-9a-f]{64}$', lessThanOrEquals: d18:digest_sequential}
+      - {path: d18:items, minCount: 4, maxCount: 4}
+      - {path: d18:files, minCount: 2, maxCount: 2}
+  - id: d18-item
+    targetClass: ont:D18Item
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d18:id, minCount: 1, maxCount: 1, pattern: '^q[1-4]$'}
+      - {path: d18:writer_end_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d18:checker_start_ms}
+      - {path: d18:checker_start_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d18:decision, minCount: 1, maxCount: 1, in: [accept, reject]}
+  - id: d18-file
+    targetClass: ont:D18File
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d18:path, minCount: 1, maxCount: 1, in: [out/answers.json, out/verdicts.json]}
+      - {path: d18:writers, minCount: 1, maxCount: 1, in: [writer, checker]}
+equations:
+  one_load:
+    formula: "server_spawns = 1 ∧ pid_start = pid_end"
+    domain: "the apr serve processes this run spawned"
+  disjoint_writes:
+    formula: "∀ f ∈ files: |writers(f)| = 1"
+    domain: "the files the two agents wrote"
+  causality:
+    formula: "∀ i ∈ items: writer_end(i) ≤ checker_start(i)"
+    domain: "the pipelined schedule's per-item timestamps, ms since run start"
+  schedule_independence:
+    formula: "sha256(out | sequential) = sha256(out | pipelined)"
+    domain: "answers.json ‖ verdicts.json, byte-exact, temperature 0"
+  checker_decides:
+    formula: "decided_by = checker"
+    domain: "the role whose output set the run's accept/reject"
+invariants:
+  - id: D18-INV-001
+    property: one model load serves both agents in both schedules
+    formal: 'server_spawns = 1 ∧ pid_start = pid_end'
+    prose: false
+  - id: D18-INV-002
+    property: every file has exactly one writer
+    formal: '∀ f: |writers(f)| = 1'
+    prose: false
+  - id: D18-INV-003
+    property: the checker never starts an item before the writer finished it
+    formal: '∀ i: writer_end(i) ≤ checker_start(i)'
+    prose: false
+  - id: D18-INV-004
+    property: the outputs do not depend on the schedule
+    formal: 'digest_sequential = digest_pipelined'
+    prose: false
+  - id: D18-INV-005
+    property: the writer never approves its own work
+    formal: 'decided_by = checker'
+    prose: false
+falsification_tests:
+  - id: FALSIFY-D18-001
+    rule: disjoint writes
+    prediction: a record where both agents wrote one file is rejected, naming that file node
+    test: pv lint spec --gate shapes
+    if_fails: the shape cannot see two writers on one file
+  - id: FALSIFY-D18-002
+    rule: one load
+    prediction: a record with server_spawns 2, or a pid that changed, is rejected
+    test: pv lint spec --gate shapes
+    if_fails: a second model load would pass as one
+  - id: FALSIFY-D18-003
+    rule: schedule independence
+    prediction: a record whose two digests differ is rejected by lessThanOrEquals in one direction
+    test: pv lint spec --gate shapes
+    if_fails: an output that depends on interleaving would pass
+  - id: FALSIFY-D18-004
+    rule: checker decides
+    prediction: decided_by writer is rejected by sh:in
+    test: pv lint spec --gate shapes
+    if_fails: a self-approving writer would pass

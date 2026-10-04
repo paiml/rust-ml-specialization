@@ -1,0 +1,113 @@
+name: d21-run
+version: "1.0.0"
+scope: >
+  The run record one D21 run emits. The D20 driver fans out three agents in
+  the Antigravity app. Agent-3's fixture task is planted to fail its
+  acceptance check fast, while agents 1 and 2 hold a long step. The moment
+  agent-3 is red, the driver stops every agent still running: the line
+  stops. The deterministic reducer then refuses to merge, and it refuses
+  identically in all six arrival orders of the three results.
+status: active
+metadata:
+  version: "1.0.0"
+  kind: pattern
+  created: '2026-10-04'
+  last_modified: '2026-10-04'
+  author: PAIML Engineering
+  description: >
+    Fan-in with andon. One red result stops the line, and who finished first
+    changes nothing: the refusal names the lowest red agent id, never the
+    first to arrive.
+  references:
+    - 'paiml/rust-ml-specialization#20'
+    - 'paiml/rust-ml-specialization#19'
+entity:
+  type: json
+  ref: receipt.json
+vocabulary:
+  prefix: d21
+  root_class: ont:D21Run
+  nested:
+    stops: ont:D21Stop
+    cdp_methods: ont:D21CdpMethod
+shapes:
+  - id: d21-run
+    targetClass: ont:D21Run
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d21:demo, minCount: 1, maxCount: 1, in: [d21-agy-app-fanin]}
+      - {path: d21:app_version, minCount: 1, maxCount: 1, in: ["2.8.1"]}
+      - {path: d21:app_asar_sha256, minCount: 1, maxCount: 1, in: ["cb425e9ac098e9bc7958accc4bedb17a718c7506ae13548a0eb7cef55cdaaf26"]}
+      - {path: d21:js_methods_sent, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d21:cdp_methods, minCount: 1}
+      - {path: d21:agents_started, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [3]}
+      - {path: d21:red_agent, minCount: 1, maxCount: 1, in: [agent-3]}
+      - {path: d21:stops, minCount: 1, maxCount: 2}
+      - {path: d21:line_stopped, minCount: 1, maxCount: 1, in: [true]}
+      - {path: d21:merged, minCount: 1, maxCount: 1, in: [false]}
+      - {path: d21:refusal_names, minCount: 1, maxCount: 1, in: [agent-3]}
+      - {path: d21:reduce_orders, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [6]}
+      - {path: d21:reduce_digest_per_order, minCount: 1, maxCount: 1, pattern: '^[0-9a-f]{64}$'}
+  - id: d21-stop
+    targetClass: ont:D21Stop
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d21:agent, minCount: 1, maxCount: 1, pattern: '^agent-[12]$'}
+      - {path: d21:red_seen_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d21:stop_sent_ms}
+      - {path: d21:stop_sent_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d21:stopped_ms}
+      - {path: d21:stopped_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+  - id: d21-cdp-method
+    targetClass: ont:D21CdpMethod
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d21:method, minCount: 1, maxCount: 1, pattern: '^(Target\.(getTargets|attachToTarget|detachFromTarget|setDiscoverTargets)|Browser\.getVersion|Page\.(enable|captureScreenshot|bringToFront)|DOM\.(enable|getDocument|getBoxModel|scrollIntoViewIfNeeded|focus|describeNode)|Accessibility\.(enable|getFullAXTree|queryAXTree)|Input\.(dispatchMouseEvent|dispatchKeyEvent|insertText))$'}
+      - {path: d21:count, minCount: 1, maxCount: 1, datatype: xsd:integer}
+equations:
+  stop_the_line:
+    formula: "red(agent-3) at t ⇒ ∀ a running at t: t ≤ stop_sent(a) ≤ stopped(a)"
+    domain: "agents 1 and 2, ms since fan-out"
+  refuse_on_red:
+    formula: "∃ red ⇒ merged = false ∧ refusal_names = min_id(red)"
+    domain: "the reducer's output over the three results"
+  order_free:
+    formula: "∀ π ∈ S_3: sha256(reduce(π(results))) = sha256(reduce(results))"
+    domain: "all six arrival orders; the per-order digests collapse to ONE RDF literal iff they are equal"
+  no_js:
+    formula: "∀ m ∈ cdp_methods: m ∈ ALLOW, the same twenty typed methods as shape d20-cdp-method"
+    domain: "every CDP method the driver sent, the stops included"
+invariants:
+  - id: D21-INV-001
+    property: a red result stops every agent still running, after the red and never before
+    formal: '∀ s ∈ stops: red_seen ≤ stop_sent ≤ stopped'
+    prose: false
+  - id: D21-INV-002
+    property: a red result is never merged
+    formal: 'merged = false ∧ refusal_names = agent-3'
+    prose: false
+  - id: D21-INV-003
+    property: the reduction does not depend on arrival order
+    formal: '|{digest(π)}| = 1 over 6 orders'
+    prose: false
+  - id: D21-INV-004
+    property: stopping the line sends no JavaScript either
+    formal: 'js_methods_sent = 0 ∧ ∀ m ∈ cdp_methods: m ∈ ALLOW'
+    prose: false
+falsification_tests:
+  - id: FALSIFY-D21-001
+    rule: order free
+    prediction: a run whose six per-order digests are not all equal is rejected by maxCount 1
+    test: pv lint spec --gate shapes
+    if_fails: an order-dependent reducer would pass
+  - id: FALSIFY-D21-002
+    rule: stop the line
+    prediction: a stop sent before the red was seen is rejected by lessThanOrEquals
+    test: pv lint spec --gate shapes
+    if_fails: a pre-emptive or fabricated stop would pass as andon
+  - id: FALSIFY-D21-003
+    rule: no js
+    prediction: a run record listing Runtime.callFunctionOn (a stop sent as script) is rejected, naming that method node
+    test: pv lint spec --gate shapes
+    if_fails: a driver that stops agents by evaluating script would pass

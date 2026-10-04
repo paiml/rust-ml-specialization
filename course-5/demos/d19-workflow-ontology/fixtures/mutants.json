@@ -1,0 +1,182 @@
+[
+  {
+    "id": "m01",
+    "component": "in",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/decided_by",
+        "value": "writer"
+      }
+    ]
+  },
+  {
+    "id": "m02",
+    "component": "in",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/server_spawns",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "m03",
+    "component": "datatype",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/server_spawns",
+        "value": "1"
+      }
+    ]
+  },
+  {
+    "id": "m04",
+    "component": "lessThanOrEquals",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/server_pid_end",
+        "value": 41388
+      }
+    ]
+  },
+  {
+    "id": "m05",
+    "component": "lessThanOrEquals",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/digest_pipelined",
+        "value": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "m06",
+    "component": "pattern",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/digest_sequential",
+        "value": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+      }
+    ]
+  },
+  {
+    "id": "m07",
+    "component": "minCount",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "remove",
+        "path": "/decided_by"
+      }
+    ]
+  },
+  {
+    "id": "m08",
+    "component": "maxCount",
+    "target": "d18-file",
+    "focus": ".files.0",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/files/0/writers/-",
+        "value": "checker"
+      }
+    ]
+  },
+  {
+    "id": "m09",
+    "component": "lessThanOrEquals",
+    "target": "d18-item",
+    "focus": ".items.2",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/2/checker_start_ms",
+        "value": 3301
+      }
+    ]
+  },
+  {
+    "id": "m10",
+    "component": "in",
+    "target": "d18-item",
+    "focus": ".items.0",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/decision",
+        "value": "maybe"
+      }
+    ]
+  },
+  {
+    "id": "m11",
+    "component": "closed",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/speedup",
+        "value": 1.05
+      }
+    ]
+  },
+  {
+    "id": "m12",
+    "component": "minCount",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "remove",
+        "path": "/items/3"
+      }
+    ]
+  },
+  {
+    "id": "m13",
+    "component": "in",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/model_sha256",
+        "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    ]
+  },
+  {
+    "id": "m14",
+    "component": "in",
+    "target": "d18-run",
+    "focus": "",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/apr_version",
+        "value": "0.69.3"
+      }
+    ]
+  }
+]

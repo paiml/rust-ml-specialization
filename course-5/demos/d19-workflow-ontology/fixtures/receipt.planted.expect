@@ -1,0 +1,5 @@
+ont:d19/d19-run-v1 violates shape `d19-run` (in): ont:d19/extract_drift_exit: "0"^^xsd:integer is not one of ["1"^^xsd:integer]
+ont:d19/d19-run-v1 violates shape `d19-run` (lessThanOrEquals): ont:d19/w3c_total: "19"^^xsd:integer is not <= "18"^^xsd:integer of ont:d19/w3c_passed
+ont:d19/d19-run-v1.mutants.10 violates shape `d19-mutant` (in): ont:d19/exit: "0"^^xsd:integer is not one of ["1"^^xsd:integer]
+ont:d19/d19-run-v1.mutants.10 violates shape `d19-mutant` (in): ont:d19/named: "false"^^xsd:boolean is not one of ["true"^^xsd:boolean]
+ont:d19/d19-run-v1.mutants.3 violates shape `d19-mutant` (closed): carries ont:d19/speedup, which the closed shape does not declare

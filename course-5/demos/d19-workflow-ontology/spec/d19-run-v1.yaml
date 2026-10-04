@@ -1,0 +1,98 @@
+name: d19-run
+version: "1.0.0"
+scope: >
+  The run record one D19 run emits. D19 takes D18's contract, the two-agent
+  workflow written as a pv contract with closed SHACL shapes, and puts pv to
+  work on it: validate, extract the run record as RDF, catch an after-the-fact
+  edit with extract --check, judge the golden and planted records, and kill
+  every mutant in a fixed table of fourteen. Each mutant breaks exactly one
+  declared constraint.
+status: active
+metadata:
+  version: "1.0.0"
+  kind: pattern
+  created: '2026-10-04'
+  last_modified: '2026-10-04'
+  author: PAIML Engineering
+  description: >
+    The specification is executable: every constraint in d18-run-v1 is shown
+    to fire on a record that breaks it, and to stay silent on one that does not.
+  references:
+    - 'paiml/rust-ml-specialization#20'
+    - 'paiml/rust-ml-specialization#19'
+entity:
+  type: json
+  ref: receipt.json
+vocabulary:
+  prefix: d19
+  root_class: ont:D19Run
+  nested:
+    mutants: ont:D19Mutant
+shapes:
+  - id: d19-run
+    targetClass: ont:D19Run
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d19:demo, minCount: 1, maxCount: 1, in: [d19-workflow-ontology]}
+      - {path: d19:pv_version, minCount: 1, maxCount: 1, in: ["0.70.1"]}
+      - {path: d19:subject, minCount: 1, maxCount: 1, in: [d18-run-v1]}
+      - {path: d19:validate_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d19:extract_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d19:extract_check_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d19:extract_drift_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [1]}
+      - {path: d19:golden_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d19:golden_pc, minCount: 1, maxCount: 1, in: [fired]}
+      - {path: d19:w3c_passed, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d19:w3c_total}
+      - {path: d19:w3c_total, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d19:w3c_passed}
+      - {path: d19:planted_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [1]}
+      - {path: d19:planted_findings, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [6]}
+      - {path: d19:planted_matches_expect, minCount: 1, maxCount: 1, in: [true]}
+      - {path: d19:mutants, minCount: 14, maxCount: 14}
+  - id: d19-mutant
+    targetClass: ont:D19Mutant
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d19:id, minCount: 1, maxCount: 1, pattern: '^m(0[1-9]|1[0-4])$'}
+      - {path: d19:component, minCount: 1, maxCount: 1, in: [in, datatype, pattern, lessThanOrEquals, minCount, maxCount, closed]}
+      - {path: d19:target, minCount: 1, maxCount: 1, pattern: '^d18-(run|item|file)$'}
+      - {path: d19:exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [1]}
+      - {path: d19:named, minCount: 1, maxCount: 1, in: [true]}
+equations:
+  every_mutant_killed:
+    formula: "∀ m ∈ mutants: exit(m) = 1 ∧ named(m)"
+    domain: "the fourteen committed mutants of the D18 golden record"
+  golden_silent:
+    formula: "exit(golden) = 0 ∧ pc_shape = fired"
+    domain: "the committed D18 golden record"
+  abox_tamper_evident:
+    formula: "edit(receipt) after extract ⇒ exit(extract --check) = 1"
+    domain: "the materialised run directory"
+  engine_conformant:
+    formula: "w3c_passed = w3c_total"
+    domain: "pv's built-in W3C SHACL-Core cases, run on every lint"
+invariants:
+  - id: D19-INV-001
+    property: every mutant is rejected and the rejection names the broken constraint
+    formal: '∀ m: exit(m) = 1 ∧ named(m)'
+    prose: false
+  - id: D19-INV-002
+    property: the golden record passes with the positive control fired
+    formal: 'exit(golden) = 0 ∧ pc_shape = fired'
+    prose: false
+  - id: D19-INV-003
+    property: a record edited after extraction is caught
+    formal: 'extract_drift_exit = 1'
+    prose: false
+falsification_tests:
+  - id: FALSIFY-D19-001
+    rule: every mutant killed
+    prediction: a run where one mutant passed is rejected, naming that mutant node
+    test: pv lint spec --gate shapes
+    if_fails: a constraint that never fires would look like a working one
+  - id: FALSIFY-D19-002
+    rule: tamper evidence
+    prediction: a run where extract --check missed the edit (exit 0) is rejected
+    test: pv lint spec --gate shapes
+    if_fails: an edited run record would pass as the original

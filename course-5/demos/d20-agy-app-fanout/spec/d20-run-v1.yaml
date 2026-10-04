@@ -1,0 +1,122 @@
+name: d20-run
+version: "1.0.0"
+scope: >
+  The run record one D20 run emits. A Rust program drives the Antigravity
+  desktop app over the Chrome DevTools Protocol and fans out three agents,
+  each with its own fixture task and its own workspace directory. It uses
+  typed CDP domains only, and never a JavaScript string. It launches its own
+  app instance on a dedicated profile and never touches the operator's.
+status: active
+metadata:
+  version: "1.0.0"
+  kind: pattern
+  created: '2026-10-04'
+  last_modified: '2026-10-04'
+  author: PAIML Engineering
+  description: >
+    Fan-out you can watch: three agents running side by side in the app's
+    agent view. The run record lists every CDP method the driver sent, and
+    an exact allow-list of twenty typed methods refuses anything that can
+    run JavaScript (Runtime.*, Debugger.*, Page.addScriptToEvaluateOnNewDocument,
+    Page.navigate) and every method not on the list.
+  references:
+    - 'paiml/rust-ml-specialization#20'
+    - 'paiml/rust-ml-specialization#19'
+entity:
+  type: json
+  ref: receipt.json
+vocabulary:
+  prefix: d20
+  root_class: ont:D20Run
+  nested:
+    cdp_methods: ont:D20CdpMethod
+    agents: ont:D20Agent
+    files: ont:D20File
+    screenshots: ont:D20Shot
+shapes:
+  - id: d20-run
+    targetClass: ont:D20Run
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d20:demo, minCount: 1, maxCount: 1, in: [d20-agy-app-fanout]}
+      - {path: d20:app_version, minCount: 1, maxCount: 1, in: ["2.8.1"]}
+      - {path: d20:app_asar_sha256, minCount: 1, maxCount: 1, in: ["cb425e9ac098e9bc7958accc4bedb17a718c7506ae13548a0eb7cef55cdaaf26"]}
+      - {path: d20:cdp_protocol, minCount: 1, maxCount: 1, in: ["1.3"]}
+      - {path: d20:operator_profile_touched, minCount: 1, maxCount: 1, in: [false]}
+      - {path: d20:js_methods_sent, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d20:cdp_methods, minCount: 1}
+      - {path: d20:agents, minCount: 3, maxCount: 3}
+      - {path: d20:screenshots, minCount: 3, maxCount: 3}
+  - id: d20-cdp-method
+    targetClass: ont:D20CdpMethod
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d20:method, minCount: 1, maxCount: 1, pattern: '^(Target\.(getTargets|attachToTarget|detachFromTarget|setDiscoverTargets)|Browser\.getVersion|Page\.(enable|captureScreenshot|bringToFront)|DOM\.(enable|getDocument|getBoxModel|scrollIntoViewIfNeeded|focus|describeNode)|Accessibility\.(enable|getFullAXTree|queryAXTree)|Input\.(dispatchMouseEvent|dispatchKeyEvent|insertText))$'}
+      - {path: d20:count, minCount: 1, maxCount: 1, datatype: xsd:integer}
+  - id: d20-agent
+    targetClass: ont:D20Agent
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d20:id, minCount: 1, maxCount: 1, pattern: '^agent-[1-3]$'}
+      - {path: d20:task, minCount: 1, maxCount: 1, in: [fixture-alpha, fixture-beta, fixture-gamma]}
+      - {path: d20:workspace, minCount: 1, maxCount: 1, pattern: '^ws/agent-[1-3]$'}
+      - {path: d20:state, minCount: 1, maxCount: 1, in: [done]}
+      - {path: d20:files, minCount: 1}
+  - id: d20-file
+    targetClass: ont:D20File
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d20:path, minCount: 1, maxCount: 1, pattern: '^ws/agent-[1-3]/[^/]+$'}
+      - {path: d20:writers, minCount: 1, maxCount: 1, pattern: '^agent-[1-3]$'}
+  - id: d20-shot
+    targetClass: ont:D20Shot
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d20:label, minCount: 1, maxCount: 1, in: [before, fanned-out, all-done]}
+      - {path: d20:sha256, minCount: 1, maxCount: 1, pattern: '^[0-9a-f]{64}$'}
+equations:
+  fan_out:
+    formula: "|agents| = 3 ∧ ∀ a: state(a) = done"
+    domain: "the agents the driver created in the app"
+  disjoint_workspaces:
+    formula: "∀ a ≠ b: workspace(a) ∩ workspace(b) = ∅ ∧ ∀ f: |writers(f)| = 1"
+    domain: "the files each agent wrote"
+  no_js:
+    formula: "∀ m ∈ cdp_methods: m ∈ ALLOW, the twenty typed methods of shape d20-cdp-method (no Runtime.*, Debugger.*, Page.addScriptToEvaluateOnNewDocument or Page.navigate)"
+    domain: "every CDP method the driver sent"
+  operator_untouched:
+    formula: "profile(run) ≠ profile(operator)"
+    domain: "the app's --user-data-dir"
+invariants:
+  - id: D20-INV-001
+    property: three agents fanned out and every one finished
+    formal: '|agents| = 3 ∧ ∀ a: state(a) = done'
+    prose: false
+  - id: D20-INV-002
+    property: no file has two writers
+    formal: '∀ f: |writers(f)| = 1'
+    prose: false
+  - id: D20-INV-003
+    property: the driver sends no JavaScript
+    formal: 'js_methods_sent = 0 ∧ ∀ m ∈ cdp_methods: m ∈ ALLOW'
+    prose: false
+  - id: D20-INV-004
+    property: the operator's own app profile is never used
+    formal: 'operator_profile_touched = false'
+    prose: false
+falsification_tests:
+  - id: FALSIFY-D20-001
+    rule: no js
+    prediction: a run record listing Runtime.evaluate, or Page.addScriptToEvaluateOnNewDocument (JavaScript under an allowed domain), is rejected, naming that method node
+    test: pv lint spec --gate shapes
+    if_fails: a driver that evaluates JavaScript strings would pass
+  - id: FALSIFY-D20-002
+    rule: disjoint workspaces
+    prediction: a file with two agent writers is rejected
+    test: pv lint spec --gate shapes
+    if_fails: two agents editing one file would pass as a fan-out
