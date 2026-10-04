@@ -201,6 +201,7 @@ name = "d18-two-agents-one-server"
 version = "0.1.0"
 dependencies = [
  "demo-kit",
+ "serde_json",
 ]
 
 [[package]]

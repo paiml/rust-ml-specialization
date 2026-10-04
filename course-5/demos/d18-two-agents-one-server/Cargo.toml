@@ -16,3 +16,4 @@ path = "src/bin/fake_apr_serve.rs"
 
 [dependencies]
 demo-kit = { path = "../demo-kit" }
+serde_json.workspace = true
