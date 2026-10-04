@@ -7,6 +7,7 @@
 //! repository is refused.
 
 use crate::sha;
+use crate::shapes::ShapesOutcome;
 use crate::verdict::Verdict;
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -34,6 +35,13 @@ pub struct Receipt {
     pub steps: Vec<StepRecord>,
     pub measured: BTreeMap<String, serde_json::Value>,
     pub assertions: BTreeMap<String, bool>,
+    /// Versions of recorded tools (`pv`, `antigravity`, `xdotool`, `Xvfb`).
+    pub tools: BTreeMap<String, String>,
+    /// sha256 of the run record the shapes judged (§4: two separate files).
+    pub run_record_sha256: Option<String>,
+    /// The shapes judge's outcome; a demo naming `pv` is not Green without a
+    /// Green one.
+    pub shapes: Option<ShapesOutcome>,
     pub verdict: Verdict,
 }
 
@@ -52,6 +60,9 @@ impl Receipt {
             steps: Vec::new(),
             measured: BTreeMap::new(),
             assertions: BTreeMap::new(),
+            tools: BTreeMap::new(),
+            run_record_sha256: None,
+            shapes: None,
             verdict: Verdict::NotRun { reasons: vec![] },
         }
     }
