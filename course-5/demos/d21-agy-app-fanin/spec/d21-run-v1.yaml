@@ -91,7 +91,7 @@ equations:
     domain: "every CDP method and key the driver sent, as in D20"
   operator_untouched:
     formula: "profile(run) ≠ profile(operator) ∧ listing(operator, before) = listing(operator, after) ∧ stray_writes = 0"
-    domain: "exactly as in D20: the app's --user-data-dir, extensions dir, HOME and XDG_* all inside the course's one dedicated demo profile; the operator's app, gemini and XDG config, cache and state directories listed by path, size and mtime before and after, the two listings equal, and a canary beside them unchanged; operator_profile_touched comes from that comparison. stray_writes counts every change in the run's tree outside the three agent workspaces"
+    domain: "exactly as in D20: the app's --user-data-dir, extensions dir, HOME and XDG_* all inside the course's one dedicated demo profile; the operator's app, gemini and XDG config, data, cache and state directories listed by path, inode, size, mtime and ctime before and after, the two listings equal, and a canary beside them unchanged; operator_profile_touched comes from that comparison. stray_writes counts every change in the run's tree outside the three agent workspaces"
 invariants:
   - id: D21-INV-001
     property: the line stops after red is seen, and every agent still running is stopped
