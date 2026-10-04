@@ -6,7 +6,7 @@ status: active
 # rfml5 new demos D18–D21: two agents on one server, the workflow as an ontology, and agent fan-out in the Antigravity app
 
 **Ticket:** PMAT-020 (#20), epic #19. **Branch:** `PMAT-020-rfml5-new-demos`.
-**Status:** spec, revised after quorum rounds 1, 2 and 3 (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
+**Status:** spec, revised after quorum rounds 1 to 4 (§7). All four pv contracts validate, and the fixtures below pass or fail exactly as stated: `A_1` (§6) passes 17/17 checks, and its `--self-test` refuses all 28 sabotages exactly as each row states — the exact set of failing checks, and the reason wherever the check alone does not say why. None of the four demo binaries exists yet.
 
 ## 0. Origin
 
@@ -268,7 +268,7 @@ The changes:
    - The `course-5-demos` job gains `cargo install aprender-contracts-cli --version 0.70.1 --locked`, cached the same way as `bashrs`.
    - The job's existing rule holds: *a missing tool fails, never skips.*
    - The judge's run root in CI is the runner's temp dir, which is outside the checkout.
-7. **Run records go under `$RFML5_RECEIPTS/<id>/<run_id>/`**, so no host path is written into the repo. `$RFML5_MODELS` holds the model and `$RFML5_DECLARED_APR` names the `apr` binary.
+7. **Run records go under `$RFML5_RECEIPTS/<id>/<run_id>/`**, so no host path is written into the repo. `$RFML5_MODELS` holds the model and `$RFML5_DECLARED_APR` names the `apr` binary. For D20 and D21, `$RFML5_AGY_BIN` names the Antigravity launcher and `$RFML5_AGY_PROFILE` the dedicated demo profile (§5.3). Preflight refuses a run with either unset as `NotRun`; neither has a default, so no host path is ever compiled in or guessed.
 8. **An `xtask` lint confines the WebSocket dependency:** `tungstenite` may appear only in `agy-cdp`'s manifest and sources. Every other crate reaches the app through `agy-cdp`'s closed method enum. This lands in ph2 with the other lints.
 
 ## 5. Per-demo build
@@ -350,7 +350,9 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 - **One dedicated, reused demo profile.** D20 and D21 run on ONE profile directory that belongs to the course, outside the repo and outside the operator's own app, config and XDG directories. It holds `user-data/`, `extensions/`, `home/` and `xdg/`: the app gets `--user-data-dir` and `--extensions-dir` inside it, `--password-store=basic`, and `HOME` and every `XDG_*` directory point inside it too. A fresh scratch profile per take would need a fresh sign-in per take, so the profile is reused. The operator signs in on it once, by hand; a run whose profile is not signed in is `NotRun`. The demos never read, copy, list or receive a credential, and nothing from the profile is ever committed. Each agent's workspace is still fresh per take (below).
 - **The driver attaches only to the port its own child opened.** The app is started with `--remote-debugging-port=0`, and the driver reads the chosen port from `DevToolsActivePort` in the demo profile. The listening socket's inode must belong to a pid in the child's group, checked through `/proc/<pid>/fd` and `/proc/net/tcp`.
 - **Single-instance forwarding is refused.** An Electron app may hand a second launch to an instance that is already running. If the child exits early, or no port appears in the demo profile, the run is `NotRun`, and the driver never looks for any other port.
-- **The operator's own state is untouched.** The operator's app, gemini, and XDG config, cache and state directories are listed by path, size and mtime before and after the run, and the two listings must be equal. A canary file is planted beside them and must be unchanged afterwards. No operator path is ever passed to the app. `operator_profile_touched` in the record comes from that comparison.
+- **The operator's own state is untouched.** The operator's app, gemini, and XDG config, cache and state directories are listed by path, inode, size, mtime and ctime before and after the run, and the two listings must be equal. ctime is in the listing because no unprivileged process can set it: a write followed by restoring the old mtime and size still moves ctime, since the restore is itself a metadata change. Content is never hashed there, because hashing is reading, and those directories hold credentials. A canary file is planted beside them and must be unchanged afterwards. No operator path is ever passed to the app. `operator_profile_touched` in the record comes from that comparison.
+- **The demo profile's `extensions/` is fixed.** A manifest of it (path, size, sha256; extensions are code, not credentials) is taken before and after each run and must be equal, or the run fails. Only the operator changes the installed extensions, by hand. `no_js` covers the CDP channel; this manifest covers the extension channel, the other way script could enter the app.
+- **Stated limit: a read leaves no trace.** Reading a file changes no ctime, and atime is not reliable under `relatime`, so no listing can prove the operator's credentials were not read. That property is held by construction instead: the app's `HOME` and `XDG_*` point inside the demo profile, every path the driver opens comes from `RFML5_AGY_PROFILE` or the run directory, and an `xtask` lint refuses any `agy-cdp`, d20 or d21 source that calls `std::env::home_dir`, reads `HOME` or an `XDG_*` variable, or names the operator's app or gemini directories. The one exception is `agy-cdp`'s `operator_listing` module, which must resolve those directories to list them; the same lint refuses any `File::open`, `fs::read*` or `fs::copy` in it, so it can only `read_dir` and `symlink_metadata`.
 - **A leak sweep at teardown.** After the group is killed, no process from it may remain, and no socket may still be listening on its port.
 - **Workspaces are isolated.** Each agent's workspace `ws/agent-N/` is a fresh scratch directory. `agent_N_files` comes from a filesystem diff of that workspace, cross-checked against what the agent view reports the agent edited. A change anywhere else in the take's run tree counts in `stray_writes`; D21 carries the same count, also required to be 0.
 
@@ -399,7 +401,7 @@ The shapes check *structure and relations*. pv has no arithmetic and no access t
 
   The long step must last at least 3 × (red + L + UI delay), so that agents 1 and 2 are reliably still running at red. L is re-measured whenever the pinned asar changes.
 
-  **Measuring L is ph6's entry gate.** ph6 records no take until the samples are committed and L is computed from them. Taking the samples drives the app, so it needs the demo profile signed in (E2, now done). Until the samples are committed, L, and with it the live D21 take, is `NotRun`, never estimated.
+  **Measuring L is ph6's entry gate** (`E_6`, §6). ph6 records no take until the samples are committed and L is computed from them. Taking the samples drives the app, so it needs the demo profile signed in (E2, now done). Until the samples are committed, L, and with it the live D21 take, is `NotRun`, never estimated.
 - **`stopped_agents = running_at_red`.** The shapes bound each set to {agent-1, agent-2} and require two values in each, but cannot equate two value sets, so the program asserts the equality.
 - **Each stop is that agent's own control, and the stop is read back.** Each `stop_agent_N_sent_ms` is the moment of a click on agent N's own stop control: its accessibility node, then `DOM.getBoxModel`, then `Input.dispatchMouseEvent` at the box centre. `stop_agent_N_stopped_ms` is the moment the tree first reports agent N stopped. The shapes order the three moments (FALSIFY-D21-001 and -007); only the program knows which node was clicked.
 - **No writes after the stop, judged by content, not by time.** The two workspace snapshots compare path, size and sha256, so no mtime granularity or slack enters the check.
@@ -419,17 +421,19 @@ The plan has seven phases. A **lane** is one independent reviewer in the quorum;
 | ph1 spec grill (five-role quorum: security, crux, architecture, adversarial, quality; review only) | this spec and the four `spec/` + `fixtures/` dirs | `A_1`: the spec proofs below, both exit 0 |
 | ph2 harness | `demo-kit/**`, `xtask/**`, `Cargo.toml`, `Cargo.lock`, `.github/workflows/ci.yml`, plus manifests and skeleton bins for d18–d21 and `agy-cdp`. **All** shared-file edits land here. | `cargo test -p demo-kit -p xtask && cargo build --workspace && cargo run -q -p xtask -- verify` |
 | ph3 D18 | `d18-two-agents-one-server/**` | `cargo test -p d18-two-agents-one-server && cargo run -q -p xtask -- verify --only d18-two-agents-one-server`, then live run L3 Green |
-| ph4 agy-cdp + D20 | `agy-cdp/**`, `d20-agy-app-fanout/**` | the entry gate below first; then `cargo test -p agy-cdp -p d20-agy-app-fanout && cargo run -q -p xtask -- verify --only d20-agy-app-fanout`, then live run L4 Green |
+| ph4 agy-cdp + D20 | `agy-cdp/**`, `d20-agy-app-fanout/**` | `E_4`, the entry gate below, exit 0 first; then `cargo test -p agy-cdp -p d20-agy-app-fanout && cargo run -q -p xtask -- verify --only d20-agy-app-fanout`, then live run L4 Green |
 | ph5 D19 | `d19-workflow-ontology/**`; read-only: `d18-two-agents-one-server/spec/**` and `d18-two-agents-one-server/fixtures/**`, which D19 judges and never edits | `cargo test -p d19-workflow-ontology && cargo run -q -p xtask -- verify --only d19-workflow-ontology`, then live run L5 Green (pv is its only tool, so L5 needs no GPU and no sign-in) |
-| ph6 D21 | `d21-agy-app-fanin/**` | `cargo test -p d21-agy-app-fanin && cargo run -q -p xtask -- verify --only d21-agy-app-fanin`, then live run L6 Green |
+| ph6 D21 | `d21-agy-app-fanin/**`; read-only: `agy-cdp/**` and `d20-agy-app-fanout/fixtures/**` (the role/name map), which ph4 owns and ph6 never edits | `E_6`, the L measurement (§5.4), exit 0 first; then `cargo test -p d21-agy-app-fanin && cargo run -q -p xtask -- verify --only d21-agy-app-fanin`, then live run L6 Green |
 | ph7 pre-PR | the whole diff | five-role diff quorum (the ph1 roles), `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo run -q -p xtask -- verify` |
 
 **The live runs.** Each writes its Receipt under `$RFML5_RECEIPTS/<id>/<run_id>/`, and only a Green verdict passes. `NotRun` is never Green: a missing tool, a pin mismatch or a missing sign-in leaves the phase open, not done.
 
 - **L3 (D18):** `RFML5_MODELS=<dir> RFML5_DECLARED_APR=<apr 0.70.x> RFML5_RECEIPTS=<dir> cargo run -q --release -p d18-two-agents-one-server`
-- **L4 (D20):** `RFML5_RECEIPTS=<dir> cargo run -q --release -p d20-agy-app-fanout`
+- **L4 (D20):** `RFML5_AGY_BIN=<launcher> RFML5_AGY_PROFILE=<demo profile> RFML5_RECEIPTS=<dir> cargo run -q --release -p d20-agy-app-fanout`
 - **L5 (D19):** `RFML5_RECEIPTS=<dir> cargo run -q --release -p d19-workflow-ontology`
-- **L6 (D21):** `RFML5_RECEIPTS=<dir> cargo run -q --release -p d21-agy-app-fanin`
+- **L6 (D21):** `RFML5_AGY_BIN=<launcher> RFML5_AGY_PROFILE=<demo profile> RFML5_RECEIPTS=<dir> cargo run -q --release -p d21-agy-app-fanin`
+- **E_4 (ph4 entry gate, E3):** `RFML5_AGY_BIN=<launcher> RFML5_AGY_PROFILE=<demo profile> RFML5_RECEIPTS=<dir> cargo run -q --release -p agy-cdp --bin e3-probe`. Exit 0 only when all six controls are found and the F1/F12 DevTools counts are recorded; it writes the role/name map to `d20-agy-app-fanout/fixtures/role-name-map.json` for commit.
+- **E_6 (ph6 entry gate, L):** `RFML5_AGY_BIN=<launcher> RFML5_AGY_PROFILE=<demo profile> RFML5_RECEIPTS=<dir> cargo run -q --release -p d21-agy-app-fanin --bin measure-stop-latency`. Exit 0 only with at least 30 samples; it writes them and the computed L to `d21-agy-app-fanin/fixtures/stop-latency.json` for commit.
 
 L4, L6 and the measurement of L (§5.4) needed the operator to sign in once on the demos' own profile (E2). That is done, and the sign-in survived a cold restart; a take whose profile is found signed out is `NotRun`. Nothing here estimates a value it could not measure.
 
@@ -446,7 +450,7 @@ L4, L6 and the measurement of L (§5.4) needed the operator to sign in once on t
 3. Measure whether F1 and F12 open DevTools on 2.8.1, counting `Target.targetCreated` events. The key is pressed with `xdotool` 3.20160805.1 (pinned; the run records `xdotool version`) on the demo instance's own virtual `DISPLAY`, never the operator's, because `agy-cdp` cannot express either key.
 4. Commit the role/name map as a fixture.
 
-If any step fails, ph4 and ph6 stop and escalate.
+Steps 1–3 are `E_4` above; its exit status is the gate. If any step fails, ph4 and ph6 stop and escalate.
 
 **`A_1`, the spec proofs,** is two committed commands, run from the repository root with pv 0.70.1 on `PATH`:
 
@@ -570,6 +574,30 @@ Recorded, not changed:
 - **Security, seven findings: the planted fixtures contain the defects.** `Runtime.evaluate`, `Page.addScriptToEvaluateOnNewDocument`, `Runtime.callFunctionOn`, F12, a touched operator profile and a cross-agent write all appear in `receipt.planted.json`. They are false positives: a planted record exists to carry exactly those defects, and `A_1` requires pv to reject each one with the finding in `.expect`.
 - **Security: "JavaScript injection possible via `Page.addScriptToEvaluateOnNewDocument`" (§2 M6) and "DevTools via F12" (§5.3).** False positives as findings: M6 records a hole that was measured and closed, and the F12 risk is the one E3 measures before any recording, with F12 outside the three-key set. "Runtime methods present despite the enum claim" cites the line stating that the crate has no `Runtime` type and a lint refusing the strings, which is the opposite claim.
 - **Security advisory: `no_js` cannot see JavaScript the page runs itself in response to an allowed input.** True, and now stated in §5.3: the claim is that the driver injects none.
+
+**Quorum round 4** reviewed the round-3 revision with the same five roles. No lane ran on the author's model family.
+
+| Role | Model | Verdict |
+|---|---|---|
+| security | gpt-oss-120b-medium | FAIL, ten findings |
+| security (second lane) | gemini-3.1-pro-high | FAIL, three findings and one advisory |
+| crux | gemini-3.1-pro-high | PASS |
+| architecture | gemini-3.1-pro-high | FAIL, two findings (and thirteen confirmations of round 3) |
+| adversarial | gemini-3.1-pro-high | PASS (a gpt-oss-120b-medium lane returned no review: the model had no capacity, 503) |
+| quality | gemini-3.1-pro-high | PASS |
+
+All three PASS lanes and the architecture lane confirmed every round-3 change listed above, and `A_1` and its self-test were re-run by lanes (17/17, 28/28). What changed:
+
+- **Architecture: ph6 needs files outside its scope.** ph6's scope now names `agy-cdp/**` and D20's `fixtures/**` read-only (§6).
+- **Architecture: the entry gates and live runs were not runnable as written.** The E3 gate is now `E_4` and the L measurement `E_6`, each a command whose exit status is the gate; L4, L6, `E_4` and `E_6` take the launcher and the demo profile from `RFML5_AGY_BIN` and `RFML5_AGY_PROFILE`, which have no default (§4 item 7, §6).
+- **Security: a write to the operator's state, followed by restoring mtime and size, evaded the listing.** The listing now carries inode and ctime, which no unprivileged process can restore (§5.3).
+- **Security: script could enter through an extension in the demo profile.** A manifest of `extensions/` must be equal before and after each run (§5.3).
+- **Security: a read of the operator's credentials is undetectable.** True; no metadata records a read. It is now a stated limit in §5.3, held by construction and by an `xtask` lint on the driver's sources rather than by measurement.
+
+Recorded, not changed:
+
+- **Security (gpt-oss), nine findings: the planted fixtures contain the defects,** as in round 3. Each names a defect the planted record carries on purpose so that the shapes can be seen to refuse it.
+- **Security (gpt-oss): "D21's concurrency claim is unbacked".** D21's contract has no concurrency claim; `concurrent` is D20's (§1), and D21's own timing claims are the ordered stop moments and the latency bound L.
 
 **Escalations:**
 
