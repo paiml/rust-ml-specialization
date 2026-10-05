@@ -218,6 +218,7 @@ version = "0.1.0"
 dependencies = [
  "agy-cdp",
  "demo-kit",
+ "serde_json",
 ]
 
 [[package]]
