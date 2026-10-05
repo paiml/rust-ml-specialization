@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["d01-serve-hello", "d02-cold-vs-resident", "d04-json-verdict", "d07-quorum", "d08-planted-defect", "d09-parity-receipt", "d11-refusals", "d13-reducer", "d15-agy-teamwork", "d16-kaizen", "d18-two-agents-one-server", "d19-workflow-ontology", "d20-agy-app-fanout", "d21-agy-app-fanin", "agy-cdp", "demo-kit", "xtask"]
+members = ["d01-serve-hello", "d02-cold-vs-resident", "d04-json-verdict", "d07-quorum", "d08-planted-defect", "d09-parity-receipt", "d11-refusals", "d13-reducer", "d15-agy-teamwork", "d16-kaizen", "d18-two-agents-one-server", "d19-workflow-ontology", "d20-agy-app-fanout", "d21-agy-app-fanin", "agy-cdp", "agy-fixture", "demo-kit", "xtask"]
 
 [workspace.package]
 edition = "2021"
