@@ -6,11 +6,13 @@
 //! Modules: `methods` (the closed ALLOW enum), `transport` (the one socket),
 //! `launch` (the one spawner), `proc_probe` (the one `/proc` reader),
 //! `open_under` (the one file path), `operator_listing` (read_dir and
-//! symlink_metadata only) and `ax` (the control path).
+//! symlink_metadata only), `ax` (the control path) and `notice` (the
+//! cold-start notice states).
 
 pub mod ax;
 pub mod launch;
 pub mod methods;
+pub mod notice;
 pub mod open_under;
 pub mod operator_listing;
 pub mod proc_probe;
