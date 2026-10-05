@@ -77,20 +77,9 @@ pub fn windows(cues: &[(String, f64)], end_s: f64) -> Vec<(String, f64)> {
         .collect()
 }
 
-/// `pace: N cues, K late[: tag +x.xs, …]`.
+/// `pace: N cues, K late[: …][; cut …]`, as [`demo_kit::pace::summary`].
 pub fn late_summary(all: &[CueRecord]) -> String {
-    let late: Vec<String> = all
-        .iter()
-        .filter(|c| c.late())
-        .map(|c| format!("{} +{:.1}s", c.tag, c.shown_s - c.target_s))
-        .collect();
-    format!(
-        "pace: {} cues, {} late{}{}",
-        all.len(),
-        late.len(),
-        if late.is_empty() { "" } else { ": " },
-        late.join(", ")
-    )
+    demo_kit::pace::summary(all)
 }
 
 #[cfg(test)]
@@ -113,6 +102,7 @@ mod tests {
             tag: tag.into(),
             target_s,
             shown_s,
+            slip_s: 0.0,
         };
         assert_eq!(late_summary(&[r("B01", 1.0, 0.9)]), "pace: 1 cues, 0 late");
         assert_eq!(

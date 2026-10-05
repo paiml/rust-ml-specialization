@@ -168,21 +168,7 @@ fn run(h: &mut Harness, screen: &mut dyn Screen) -> Verdict {
 /// the take's beat windows can be measured against the run.
 fn report(screen: &Terminal, pacer: Option<&Pacer>) {
     match pacer {
-        Some(p) => {
-            let all = p.report();
-            let late: Vec<String> = all
-                .iter()
-                .filter(|c| c.late())
-                .map(|c| format!("{} +{:.1}s", c.tag, c.shown_s - c.target_s))
-                .collect();
-            eprintln!(
-                "pace: {} cues, {} late{}{}",
-                all.len(),
-                late.len(),
-                if late.is_empty() { "" } else { ": " },
-                late.join(", ")
-            );
-        }
+        Some(p) => eprintln!("{}", demo_kit::pace::summary(&p.report())),
         None => {
             let t: Vec<String> = screen
                 .cue_times()

@@ -75,8 +75,8 @@ impl Beats {
         for c in p.report() {
             let late = if c.late() { "LATE" } else { "on time" };
             eprintln!(
-                "cue {}: target {:.2} s, shown {:.2} s, {late}",
-                c.tag, c.target_s, c.shown_s
+                "cue {}: target {:.2} s, shown {:.2} s, cut {:.2} s so far, {late}",
+                c.tag, c.target_s, c.shown_s, c.slip_s
             );
         }
     }
