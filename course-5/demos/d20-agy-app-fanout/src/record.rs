@@ -150,6 +150,11 @@ fn evidence_defects(f: &Facts) -> Vec<String> {
     if !(t.all_running_count == 3 && t.all_running_ms.is_some_and(|a| a > 0)) {
         out.push("concurrent: no single snapshot held three running agents".into());
     }
+    if let Some(a) = t.approval_ms {
+        out.push(format!(
+            "concurrent: an agent waited on an approval prompt at {a} ms; blocked is not running"
+        ));
+    }
     let distinct: BTreeSet<String> = f.shots.iter().map(|s| sha256_hex(s)).collect();
     if f.shots.len() != 3 || distinct.len() != 3 {
         out.push(format!(
@@ -210,6 +215,7 @@ mod tests {
                 done_ms: [Some(41000), Some(43500), Some(45200)],
                 all_running_ms: Some(1620),
                 all_running_count: 3,
+                approval_ms: None,
             },
             files: [1, 2, 3].map(|n| vec![format!("ws/agent-{n}/result.md")]),
             stray_writes: 0,
@@ -286,6 +292,10 @@ mod tests {
             ),
             ("operator profile", Box::new(|f| f.operator_touched = true)),
             ("agent 2 view", Box::new(|f| f.tasks[1] = None)),
+            (
+                "approval prompt",
+                Box::new(|f| f.timeline.approval_ms = Some(900)),
+            ),
         ];
         for (needle, plant) in cases {
             let mut f = green();

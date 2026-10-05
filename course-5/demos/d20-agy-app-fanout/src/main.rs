@@ -178,10 +178,14 @@ fn fan_out(d: &mut Drive, b: &mut Beats, f: &mut Facts) -> Result<(), String> {
         "D20-B11",
         "agent 1: new conversation, fixture-alpha typed into the focused task box",
     )?;
-    d.new_agent(1)?;
+    let before = d.rows()?;
+    d.submit_agent(1)?;
+    d.find_rows(1, 1, &before)?;
     b.show("D20-B13", "agents 2 and 3: fixture-beta, fixture-gamma")?;
-    d.new_agent(2)?;
-    d.new_agent(3)?;
+    let before = d.rows()?;
+    d.submit_agent(2)?;
+    d.submit_agent(3)?;
+    d.find_rows(2, 3, &before)?;
     d.wait_all_running(60)?;
     let a = d.tl.all_running_ms.unwrap_or(0);
     b.show(

@@ -85,7 +85,7 @@ impl<'a> Drive<'a> {
         let states = self
             .agents
             .map(|a| a.and_then(|b| tree::row_state(&nodes, b)));
-        self.tl.observe(states, t);
+        self.tl.observe(states, tree::shows_approval(&nodes), t);
         Ok(nodes)
     }
 
@@ -142,13 +142,18 @@ impl<'a> Drive<'a> {
         Err(last)
     }
 
-    /// Create agent `n` (1-based): new conversation, its task, then wait for
-    /// its sidebar row and read its task back from its own view.
-    pub fn new_agent(&mut self, n: usize) -> Result<(), String> {
-        let before: Vec<i64> = tree::conversation_links(&self.snapshot()?)
+    /// The sidebar rows present now, by DOM backing.
+    pub fn rows(&mut self) -> Result<Vec<i64>, String> {
+        Ok(tree::conversation_links(&self.snapshot()?)
             .iter()
             .filter_map(|l| l.backend)
-            .collect();
+            .collect())
+    }
+
+    /// Create agent `n` (1-based): new conversation, its task, and its task
+    /// read back from its own view. Its sidebar row is found later, by
+    /// `find_rows`, so the next agent is submitted without waiting on it.
+    pub fn submit_agent(&mut self, n: usize) -> Result<(), String> {
         if !self.click("button", "new conversation")? {
             return Err("no New Conversation button".into());
         }
@@ -159,37 +164,57 @@ impl<'a> Drive<'a> {
         let task = TASKS[n - 1];
         let dir = self.roots.run_path(&format!("ws/agent-{n}"))?;
         let text = format!(
-            "{task}: create one file named result.md in the folder {} whose only content is the line {task}. Do not read, create or edit any other file and do not run any command.",
+            "{task}: create one file named result.md in the folder {} whose first line is {task} and whose remaining lines are every prime number below 1000 in ascending order, one per line, worked out by you. Do not read, create or edit any other file and do not run any command.",
             dir.display()
         );
         self.send_task(&text)?;
-        self.find_new_row(n, &before)
+        let end = Instant::now() + Duration::from_secs(5);
+        while Instant::now() < end {
+            if tree::shows_text(&self.snapshot()?, task) {
+                self.tasks[n - 1] = Some(task.to_string());
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(300));
+        }
+        Ok(())
     }
 
-    fn find_new_row(&mut self, n: usize, before: &[i64]) -> Result<(), String> {
+    /// Assign agents `first..=last` their sidebar rows: the rows absent from
+    /// `before` (taken just before agent `first` was submitted), in creation
+    /// order, which is DOM-backing order. Exactly one new row per agent.
+    pub fn find_rows(&mut self, first: usize, last: usize, before: &[i64]) -> Result<(), String> {
+        let want = last + 1 - first;
         let end = Instant::now() + Duration::from_secs(20);
         while Instant::now() < end {
-            let nodes = self.snapshot()?;
-            let new = tree::conversation_links(&nodes)
-                .iter()
-                .filter_map(|l| l.backend)
-                .find(|b| !before.contains(b) && !self.agents.contains(&Some(*b)));
-            if let Some(b) = new {
-                self.agents[n - 1] = Some(b);
-                if tree::shows_text(&nodes, TASKS[n - 1]) {
-                    self.tasks[n - 1] = Some(TASKS[n - 1].to_string());
+            let new = tree::new_rows(&self.rows()?, before);
+            if new.len() > want {
+                return Err(format!(
+                    "{} new conversation rows for {want} agents",
+                    new.len()
+                ));
+            }
+            if new.len() == want {
+                for (i, b) in new.into_iter().enumerate() {
+                    self.agents[first - 1 + i] = Some(b);
                 }
                 return Ok(());
             }
-            std::thread::sleep(Duration::from_millis(500));
+            std::thread::sleep(Duration::from_millis(300));
         }
-        Err(format!("agent {n}: no new conversation row within 20 s"))
+        Err(format!(
+            "agents {first}..{last}: no {want} new conversation rows within 20 s"
+        ))
     }
 
     /// Snapshots until one holds all three agents running.
     pub fn wait_all_running(&mut self, secs: u64) -> Result<(), String> {
         let end = Instant::now() + Duration::from_secs(secs);
         while self.tl.all_running_ms.is_none() {
+            if let Some(a) = self.tl.approval_ms {
+                return Err(format!(
+                    "an agent waited on an approval prompt at {a} ms: blocked is not running"
+                ));
+            }
             if Instant::now() > end {
                 return Err(format!("no snapshot with three running agents in {secs} s"));
             }

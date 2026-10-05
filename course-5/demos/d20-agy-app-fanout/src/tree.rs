@@ -29,6 +29,10 @@ pub const RUNNING_BUTTON: &str = "Stop execution";
 pub const IDLE_BUTTON: &str = "Archive conversation";
 pub const ROW_MARKER: &str = "More options";
 
+/// Text the app shows while an agent waits on the user (measured 06:47Z on
+/// 2.8.1: the pane read both). A waiting agent is blocked, not running.
+pub const APPROVAL_MARKS: [&str; 2] = ["allow write access", "waiting for user input"];
+
 /// The non-ignored nodes of an `Accessibility.getFullAXTree` result.
 pub fn reduce(raw: &Value) -> Vec<RNode> {
     raw["nodes"]
@@ -121,6 +125,29 @@ pub fn row_state(nodes: &[RNode], backend: i64) -> Option<RowState> {
     }
 }
 
+/// The rows in `now` that are not in `before`, oldest first: the app assigns
+/// DOM backings in creation order.
+pub fn new_rows(now: &[i64], before: &[i64]) -> Vec<i64> {
+    let mut new: Vec<i64> = now
+        .iter()
+        .copied()
+        .filter(|b| !before.contains(b))
+        .collect();
+    new.sort_unstable();
+    new.dedup();
+    new
+}
+
+/// Does any node in the snapshot, sidebar row or open pane, show an approval
+/// prompt or its radio choices?
+pub fn shows_approval(nodes: &[RNode]) -> bool {
+    nodes.iter().any(|n| {
+        let name = n.name.to_lowercase();
+        APPROVAL_MARKS.iter().any(|m| name.contains(m))
+            || (n.role == "radio" && name.contains("allow"))
+    })
+}
+
 /// Does any `StaticText` in the open view contain `needle`?
 pub fn shows_text(nodes: &[RNode], needle: &str) -> bool {
     nodes
@@ -206,6 +233,41 @@ pub(crate) mod tests {
         });
         assert_eq!(conversation_links(&n).len(), 2);
         assert_eq!(row_state(&n, 77), None);
+    }
+
+    /// Falsifier for the 06:47Z false Green: three rows read running while the
+    /// pane asked for write access. The planted prompt must be seen.
+    #[test]
+    fn a_planted_write_access_prompt_is_seen() {
+        let mut n = sidebar(&[
+            (1, RUNNING_BUTTON),
+            (2, RUNNING_BUTTON),
+            (3, RUNNING_BUTTON),
+        ]);
+        assert!(!shows_approval(&n));
+        n.push(RNode {
+            id: "p".into(),
+            parent: Some("root".into()),
+            role: "StaticText".into(),
+            name: "Allow write access to this path?".into(),
+            backend: None,
+        });
+        assert!(shows_approval(&n));
+        let mut w = sidebar(&[(1, RUNNING_BUTTON)]);
+        w.push(RNode {
+            id: "w".into(),
+            parent: Some("root".into()),
+            role: "StaticText".into(),
+            name: "Waiting for user input.".into(),
+            backend: None,
+        });
+        assert!(shows_approval(&w));
+    }
+
+    #[test]
+    fn new_rows_are_the_unseen_ones_oldest_first() {
+        assert_eq!(new_rows(&[90, 12, 77, 40], &[12, 40]), vec![77, 90]);
+        assert!(new_rows(&[12], &[12]).is_empty());
     }
 
     #[test]
