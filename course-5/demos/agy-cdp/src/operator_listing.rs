@@ -101,3 +101,55 @@ pub fn diff(before: &Listing, after: &Listing) -> Vec<PathBuf> {
     out.extend(after.keys().filter(|k| !before.contains_key(*k)).cloned());
     out
 }
+
+/// The directories that ARE the operator's profile: the ones walked whole.
+/// A run that changes anything under them has touched the operator.
+pub fn profile_roots() -> Result<Vec<PathBuf>, String> {
+    Ok(operator_dirs()?
+        .into_iter()
+        .filter(|(_, depth)| *depth == usize::MAX)
+        .map(|(d, _)| d)
+        .collect())
+}
+
+/// Split changed paths into `(profile, ambient)`. Ambient paths are the XDG
+/// defaults' shallow entries, which other software on the host writes all the
+/// time (a no-demo control over 50 s measured 18 such changes and none under a
+/// profile root); they are counted and shown, never judged.
+pub fn split(changed: Vec<PathBuf>, roots: &[PathBuf]) -> (Vec<PathBuf>, Vec<PathBuf>) {
+    changed
+        .into_iter()
+        .partition(|p| roots.iter().any(|r| p.starts_with(r)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_change_under_a_profile_root_is_profile_and_the_rest_is_ambient() {
+        let roots = vec![
+            PathBuf::from("/h/.gemini"),
+            PathBuf::from("/h/.config/Antigravity"),
+        ];
+        let (p, a) = split(
+            vec![
+                PathBuf::from("/h/.gemini/x"),
+                PathBuf::from("/h/.config/Antigravity"),
+                PathBuf::from("/h/.config/other/y"),
+                PathBuf::from("/h/.local/state/t"),
+            ],
+            &roots,
+        );
+        assert_eq!(p.len(), 2, "{p:?}");
+        assert_eq!(a.len(), 2, "{a:?}");
+    }
+
+    #[test]
+    fn profile_roots_are_exactly_the_whole_walked_dirs() {
+        let r = profile_roots().unwrap();
+        assert_eq!(r.len(), 3);
+        assert!(r.iter().any(|d| d.ends_with(".gemini")));
+        assert!(!r.iter().any(|d| d.ends_with(".cache")));
+    }
+}

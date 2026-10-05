@@ -313,14 +313,25 @@ fn run(b: &mut Beats, x: &Xvfb) -> Outcome {
         ..Facts::default()
     };
     let out = live(&e, x, b, &mut f);
-    let changed = operator_listing::list()
-        .map(|after| operator_listing::diff(&before, &after).len())
-        .unwrap_or(usize::MAX);
+    let (profile, ambient) = match (operator_listing::list(), operator_listing::profile_roots()) {
+        (Ok(after), Ok(roots)) => {
+            operator_listing::split(operator_listing::diff(&before, &after), &roots)
+        }
+        (Err(m), _) | (_, Err(m)) => return Outcome::Red(format!("operator listing after: {m}")),
+    };
+    // A change under the operator's profile is the defect; ambient churn in the
+    // shallow XDG entries is other software on the host, shown but not judged.
+    f.operator_touched = !profile.is_empty();
+    for p in &profile {
+        eprintln!("operator profile changed: {}", p.display());
+    }
     let _ = b.show(
         "D20-B19",
         &format!(
-            "operator listing: {} entries before, {changed} changed during the run",
-            before.len()
+            "operator listing: {} entries before; profile {} changed; ambient host state {} changed (not judged)",
+            before.len(),
+            profile.len(),
+            ambient.len()
         ),
     );
     match out {
