@@ -23,6 +23,7 @@ use agy_cdp::launch::{self, App, Xvfb};
 use agy_cdp::notice;
 use agy_cdp::open_under::{self, Roots};
 use agy_cdp::operator_listing;
+use agy_cdp::proc_probe;
 use agy_cdp::transport::Conn;
 use agy_cdp::RoleNameMap;
 use demo_kit::pace::{self, Pacer};
@@ -244,15 +245,30 @@ fn live(e: &Env, x: &Xvfb, b: &mut Beats, f: &mut Facts) -> Result<Outcome, Stri
         ),
     )?;
     let mut app = launch::launch_app(&e.bin, &e.profile, x, roots.create_run_fd("app.log")?)?;
+    let watch = proc_probe::FdWatch::start(
+        app.leader,
+        app.keep.clone(),
+        operator_listing::canonical(&operator_listing::profile_roots()?),
+    );
     let out = session(e, &roots, &mut app, b, f).and_then(|c| finish(c, f));
     b.show(
         "D20-B18",
         "teardown: only the pids this run started; leak sweep",
     )?;
+    f.held_open = watch.stop();
     let (left, listening) = app.teardown();
     println!(
-        "  leak sweep: {} pids left, port listening: {listening}",
-        left.len()
+        "  leak sweep: {} pids left{}, port listening: {listening}",
+        left.len(),
+        if left.is_empty() {
+            String::new()
+        } else {
+            let d: Vec<String> = left
+                .iter()
+                .map(|p| agy_cdp::proc_probe::describe(*p))
+                .collect();
+            format!(" ({})", d.join(" "))
+        }
     );
     if let Err(m) = out {
         return Ok(Outcome::Red(m));
@@ -313,25 +329,34 @@ fn run(b: &mut Beats, x: &Xvfb) -> Outcome {
         ..Facts::default()
     };
     let out = live(&e, x, b, &mut f);
-    let (profile, ambient) = match (operator_listing::list(), operator_listing::profile_roots()) {
-        (Ok(after), Ok(roots)) => {
-            operator_listing::split(operator_listing::diff(&before, &after), &roots)
-        }
+    let j = match (operator_listing::list(), operator_listing::profile_roots()) {
+        (Ok(after), Ok(roots)) => operator_listing::judge(
+            operator_listing::diff(&before, &after),
+            &roots,
+            &f.held_open,
+        ),
         (Err(m), _) | (_, Err(m)) => return Outcome::Red(format!("operator listing after: {m}")),
     };
-    // A change under the operator's profile is the defect; ambient churn in the
-    // shallow XDG entries is other software on the host, shown but not judged.
-    f.operator_touched = !profile.is_empty();
-    for p in &profile {
-        eprintln!("operator profile changed: {}", p.display());
+    // A change under the operator's profile is the defect, except a log file
+    // no demo-started process held open (the operator's own app writing its
+    // log); that and ambient churn in the shallow XDG entries are shown, not
+    // judged.
+    f.operator_touched = !j.touched.is_empty();
+    for p in &j.touched {
+        let held = operator_listing::is_held(p, &f.held_open);
+        eprintln!(
+            "operator profile changed: {} (held open by a demo-started pid: {held})",
+            p.display()
+        );
     }
     let _ = b.show(
         "D20-B19",
         &format!(
-            "operator listing: {} entries before; profile {} changed; ambient host state {} changed (not judged)",
+            "operator listing: {} entries before; profile {} changed; not judged: {} log writes by the operator's own app, {} ambient host entries",
             before.len(),
-            profile.len(),
-            ambient.len()
+            j.touched.len(),
+            j.logs.len(),
+            j.ambient.len()
         ),
     );
     match out {

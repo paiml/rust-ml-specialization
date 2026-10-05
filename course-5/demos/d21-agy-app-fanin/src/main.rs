@@ -23,6 +23,7 @@ use agy_cdp::ax;
 use agy_cdp::launch::{self, App, Xvfb};
 use agy_cdp::open_under::Roots;
 use agy_cdp::operator_listing;
+use agy_cdp::proc_probe;
 use agy_cdp::transport::Conn;
 use demo_kit::pace::{self, Pacer};
 
@@ -214,25 +215,41 @@ fn watch_and_stop(d: &mut Drive, roots: &Roots, secs: u64) -> Result<Line, Strin
     Ok(line)
 }
 
+/// The order the agents are created in: the planted one first.
+const START_ORDER: [usize; 3] = [2, 0, 1];
+
 fn fan_out(d: &mut Drive, roots: &Roots, b: &mut Beats, f: &mut Facts) -> Result<Manifest, String> {
-    b.show("D21-B05", "screenshot 1: the hub; start three agents")?;
     shot(d, roots, f)?;
     let prompts: Vec<String> = (0..AGENTS)
         .map(|i| prompt(i, roots))
         .collect::<Result<_, _>>()?;
     f.prompts = prompts.clone();
-    d.start_clock();
-    d.new_agent(0, TASKS[0], &prompts[0])?;
-    d.new_agent(1, TASKS[1], &prompts[1])?;
-    b.show(
-        "D21-B06",
-        "agents 1 and 2: fixture-alpha, fixture-beta, each a long step in its own workspace",
-    )?;
-    b.show(
-        "D21-B07",
-        "agent 3: fixture-gamma, planted to fail its acceptance check",
-    )?;
-    d.new_agent(2, TASKS[2], &prompts[2])?;
+    // The agents start now, right after the profile check, while B05-B07 print
+    // on their own beats from a second thread: the app's start-up runs under
+    // narration already spoken instead of past it.
+    std::thread::scope(|s| {
+        let lines = s.spawn(|| -> Result<(), String> {
+            b.show("D21-B05", "screenshot 1: the hub; start three agents")?;
+            b.show(
+                "D21-B06",
+                "agents 1 and 2: fixture-alpha, fixture-beta, each a long step in its own workspace",
+            )?;
+            b.show(
+                "D21-B07",
+                "agent 3: fixture-gamma, planted to fail its acceptance check",
+            )
+        });
+        d.start_clock();
+        // Agent 3 first: its red is the event the beats wait on, and the two
+        // long steps are still running when it comes.
+        let started = START_ORDER
+            .iter()
+            .try_for_each(|&i| d.new_agent(i, TASKS[i], &prompts[i]));
+        let shown = lines
+            .join()
+            .unwrap_or_else(|_| Err("beat printer panicked".into()));
+        started.and(shown)
+    })?;
     f.agents_started = d.agents.iter().filter(|a| a.is_some()).count() as u64;
     let line = watch_and_stop(d, roots, 300)?;
     f.red_agent = Some(3);
@@ -427,16 +444,31 @@ fn live(e: &Env, x: &Xvfb, b: &mut Beats, f: &mut Facts) -> Result<Outcome, Stri
         ),
     )?;
     let mut app = launch::launch_app(&e.bin, &e.profile, x, roots.create_run_fd("app.log")?)?;
+    let watch = proc_probe::FdWatch::start(
+        app.leader,
+        app.keep.clone(),
+        operator_listing::canonical(&operator_listing::profile_roots()?),
+    );
     let out =
         session(e, &roots, &mut app, b, f).and_then(|(c, at_stop)| finish(c, f).map(|()| at_stop));
     b.show(
         "D21-B21",
         "teardown: only the pids this run started; workspace snapshot again",
     )?;
+    f.held_open = watch.stop();
     let (left, listening) = app.teardown();
     println!(
-        "  leak sweep: {} pids left, port listening: {listening}",
-        left.len()
+        "  leak sweep: {} pids left{}, port listening: {listening}",
+        left.len(),
+        if left.is_empty() {
+            String::new()
+        } else {
+            let d: Vec<String> = left
+                .iter()
+                .map(|p| agy_cdp::proc_probe::describe(*p))
+                .collect();
+            format!(" ({})", d.join(" "))
+        }
     );
     let at_stop = match out {
         Ok(m) => m,
@@ -510,23 +542,30 @@ fn run(b: &mut Beats, x: &Xvfb) -> Outcome {
         return Outcome::NotRun(m);
     }
     let out = live(&e, x, b, &mut f);
-    let (profile, ambient) = match (operator_listing::list(), operator_listing::profile_roots()) {
-        (Ok(after), Ok(roots)) => {
-            operator_listing::split(operator_listing::diff(&before, &after), &roots)
-        }
+    let j = match (operator_listing::list(), operator_listing::profile_roots()) {
+        (Ok(after), Ok(roots)) => operator_listing::judge(
+            operator_listing::diff(&before, &after),
+            &roots,
+            &f.held_open,
+        ),
         (Err(m), _) | (_, Err(m)) => return Outcome::Red(format!("operator listing after: {m}")),
     };
-    // As in D20: a change under the operator's profile is the defect; ambient
-    // churn in the shallow XDG entries is shown but not judged.
-    f.operator_touched = !profile.is_empty();
-    for p in &profile {
-        eprintln!("operator profile changed: {}", p.display());
+    // As in D20: a profile change is the defect unless it is a log file no
+    // demo-started process held open; logs and ambient churn are shown only.
+    f.operator_touched = !j.touched.is_empty();
+    for p in &j.touched {
+        let held = operator_listing::is_held(p, &f.held_open);
+        eprintln!(
+            "operator profile changed: {} (held open by a demo-started pid: {held})",
+            p.display()
+        );
     }
     println!(
-        "  operator listing: {} entries before; profile {} changed; ambient host state {} changed (not judged)",
+        "  operator listing: {} entries before; profile {} changed; not judged: {} log writes by the operator's own app, {} ambient host entries",
         before.len(),
-        profile.len(),
-        ambient.len()
+        j.touched.len(),
+        j.logs.len(),
+        j.ambient.len()
     );
     match out {
         Ok(Outcome::Green) => judge(&e, b, &f).unwrap_or_else(Outcome::Red),

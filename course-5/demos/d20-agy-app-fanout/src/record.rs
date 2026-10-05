@@ -34,6 +34,9 @@ pub struct Facts {
     pub devtools_created: u64,
     pub devtools_in_snapshot: u64,
     pub operator_touched: bool,
+    /// Files under the operator profile that a demo-started process held
+    /// open during the run; a changed log file in this set is not exempt.
+    pub held_open: BTreeSet<std::path::PathBuf>,
 }
 
 pub fn sha256_hex(b: &[u8]) -> String {
@@ -217,6 +220,7 @@ mod tests {
             devtools_created: 0,
             devtools_in_snapshot: 0,
             operator_touched: false,
+            held_open: BTreeSet::new(),
         }
     }
 

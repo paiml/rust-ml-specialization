@@ -147,6 +147,9 @@ pub struct App {
     /// What the launcher set, by name.
     pub env: BTreeMap<String, String>,
     pub port: Option<u16>,
+    /// This process.s children that are not the run.s (the display server):
+    /// never swept, never watched.
+    pub keep: Vec<u32>,
 }
 
 fn confined_env(profile: &Path, display: &str) -> BTreeMap<String, String> {
@@ -165,6 +168,7 @@ fn confined_env(profile: &Path, display: &str) -> BTreeMap<String, String> {
 /// Launch the app on `display` with the profile's user-data and extensions
 /// directories; stdout and stderr go to `log` (a run-directory file).
 pub fn launch_app(bin: &Path, profile: &Path, display: &Xvfb, log: OwnedFd) -> Result<App, String> {
+    proc_probe::become_subreaper()?;
     let env = confined_env(profile, &display.display());
     let err = log.try_clone().map_err(|e| e.to_string())?;
     let child = Command::new(bin)
@@ -197,6 +201,7 @@ pub fn launch_app(bin: &Path, profile: &Path, display: &Xvfb, log: OwnedFd) -> R
         leader,
         env,
         port: None,
+        keep: vec![display.child.id()],
     })
 }
 
@@ -254,19 +259,29 @@ impl App {
         Ok(())
     }
 
-    /// Kill the group leader, wait, and sweep: the pids of the group still
-    /// alive afterwards (empty when clean), and whether the port still listens.
+    /// Kill the group, then every other pid the run started, and sweep: the
+    /// run.s pids still alive afterwards (empty when clean), and whether the
+    /// port still listens.
     pub fn teardown(&mut self) -> (Vec<u32>, bool) {
         proc_probe::kill_group(self.leader, Duration::from_secs(10));
         if let Some(mut c) = self.child.take() {
             let _ = c.kill();
             let _ = c.wait();
         }
-        let end = Instant::now() + Duration::from_secs(15);
-        let mut left = proc_probe::group_members(self.leader);
+        // What escaped the group (a double fork, reparented here) is swept by pid.
+        proc_probe::kill_pids(
+            &proc_probe::run_pids(self.leader, &self.keep),
+            Duration::from_secs(10),
+        );
+        let end = Instant::now() + Duration::from_secs(30);
+        let mut left = proc_probe::run_pids(self.leader, &self.keep);
         while !left.is_empty() && Instant::now() < end {
+            // A pid that appeared after the first sweep (a helper respawned as
+            // its parent died) is signalled too, not only waited for.
+            proc_probe::kill_pids(&left, Duration::from_millis(500));
             std::thread::sleep(Duration::from_millis(250));
-            left = proc_probe::group_members(self.leader);
+            proc_probe::reap(&left);
+            left = proc_probe::run_pids(self.leader, &self.keep);
         }
         let listening = self
             .port
@@ -279,6 +294,10 @@ impl Drop for App {
     fn drop(&mut self) {
         if self.child.is_some() {
             proc_probe::kill_group(self.leader, Duration::from_secs(5));
+            proc_probe::kill_pids(
+                &proc_probe::run_pids(self.leader, &self.keep),
+                Duration::from_secs(5),
+            );
         }
         if let Some(mut c) = self.child.take() {
             let _ = c.kill();
