@@ -67,6 +67,27 @@ jobs:
       - name: Verify every demo
         run: cargo run -q -p xtask -- verify
 
+  # The course 5 lab: the practice crate is tested and every exercise run; the
+  # assignment skeleton is only built, because its `todo!()`s panic by design.
+  course-5-lab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: rustup toolchain install stable --profile minimal -c clippy,rustfmt && rustup default stable
+      - name: Practice
+        working-directory: course-5/lab/practice
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+          for b in d18_one_server d19_mini_judge d21_fan_in; do cargo run -q --bin "$b"; done
+      - name: Assignment skeleton builds
+        working-directory: course-5/lab/assignment
+        run: |
+          cargo fmt --all -- --check
+          cargo build --tests --bins
+
   # Not in `gate` yet: `pmat comply` fails today on repo-level checks (branch
   # protection, deny.toml, TDG grade) that need a ruling. It runs and reports.
   pmat-comply:
@@ -93,10 +114,11 @@ jobs:
   # only when every job above passed; a skipped or cancelled job is a failure.
   gate:
     if: always()
-    needs: [check, course-5-demos]
+    needs: [check, course-5-demos, course-5-lab]
     runs-on: ubuntu-latest
     steps:
       - name: All required jobs passed
         run: |
           test "${{ needs.check.result }}" = success
           test "${{ needs.course-5-demos.result }}" = success
+          test "${{ needs.course-5-lab.result }}" = success
