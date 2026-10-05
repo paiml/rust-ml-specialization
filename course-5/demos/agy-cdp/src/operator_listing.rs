@@ -146,19 +146,22 @@ pub fn split(changed: Vec<PathBuf>, roots: &[PathBuf]) -> (Vec<PathBuf>, Vec<Pat
         .partition(|p| roots.iter().any(|r| p.starts_with(r)))
 }
 
-/// A file under a profile root with a directory named `log` between the root
-/// and the file: the ruled `*/log/*`. The `log` directory's own entry is not
-/// a log file and stays judged.
+/// A `*.log` file under a profile root with a directory named `log` or `logs`
+/// between the root and the file. Nothing else is a log and everything else
+/// stays judged: a log directory's own entry, a file without the `.log`
+/// extension inside one (a transcript `.jsonl` under `logs/`), and a `.log`
+/// file in no log directory.
 pub fn is_log(p: &Path, roots: &[PathBuf]) -> bool {
-    roots.iter().any(|r| {
-        p.strip_prefix(r).is_ok_and(|rest| {
-            let parts: Vec<_> = rest.components().collect();
-            parts.len() >= 2
-                && parts[..parts.len() - 1]
-                    .iter()
-                    .any(|c| c.as_os_str() == "log")
+    p.extension().is_some_and(|e| e == "log")
+        && roots.iter().any(|r| {
+            p.strip_prefix(r).is_ok_and(|rest| {
+                let parts: Vec<_> = rest.components().collect();
+                parts.len() >= 2
+                    && parts[..parts.len() - 1]
+                        .iter()
+                        .any(|c| c.as_os_str() == "log" || c.as_os_str() == "logs")
+            })
         })
-    })
 }
 
 /// The listing judged.
@@ -235,12 +238,30 @@ mod tests {
     }
 
     #[test]
-    fn only_a_file_below_a_log_dir_under_a_root_is_a_log() {
-        let roots = vec![PathBuf::from("/h/.gemini")];
+    fn only_a_dot_log_file_below_a_log_or_logs_dir_under_a_root_is_a_log() {
+        let roots = vec![
+            PathBuf::from("/h/.gemini"),
+            PathBuf::from("/h/.config/Antigravity"),
+        ];
         assert!(is_log(Path::new("/h/.gemini/cli/log/a.log"), &roots));
-        assert!(is_log(Path::new("/h/.gemini/log/a"), &roots));
+        assert!(is_log(Path::new("/h/.gemini/cli/logs/a.log"), &roots));
+        assert!(is_log(
+            Path::new("/h/.config/Antigravity/logs/language_server.log"),
+            &roots
+        ));
+        // Not a .log file, though inside a log dir.
+        assert!(!is_log(Path::new("/h/.gemini/log/a"), &roots));
+        assert!(!is_log(
+            Path::new("/h/.gemini/cli/brain/c/.system_generated/logs/transcript.jsonl"),
+            &roots
+        ));
+        // A log dir's own entry, and a .log file in no log dir.
         assert!(!is_log(Path::new("/h/.gemini/cli/log"), &roots));
-        assert!(!is_log(Path::new("/h/.gemini/cli/logs/a.log"), &roots));
+        assert!(!is_log(Path::new("/h/.gemini/cli/logs"), &roots));
+        assert!(!is_log(
+            Path::new("/h/.gemini/cli/tasks/task-55.log"),
+            &roots
+        ));
         assert!(!is_log(Path::new("/h/.gemini/cli/a.log"), &roots));
         assert!(!is_log(Path::new("/x/log/a.log"), &roots));
     }
@@ -251,6 +272,9 @@ mod tests {
         let _ = std::fs::remove_dir_all(&h);
         std::fs::create_dir_all(h.join(".gemini/cli/log")).unwrap();
         std::fs::write(h.join(".gemini/cli/log/cli.log"), "start\n").unwrap();
+        std::fs::create_dir_all(h.join(".gemini/cli/logs")).unwrap();
+        std::fs::write(h.join(".gemini/cli/logs/cli.log"), "start\n").unwrap();
+        std::fs::write(h.join(".gemini/cli/logs/transcript.jsonl"), "{}\n").unwrap();
         std::fs::write(h.join(".gemini/settings.json"), "{}").unwrap();
         h
     }
@@ -357,6 +381,42 @@ mod tests {
         );
         assert!(j.touched.is_empty(), "{j:?}");
         assert_eq!(j.logs.len(), 1, "{j:?}");
+    }
+
+    #[test]
+    fn planted_logs_dir_write_by_a_demo_started_pid_is_red() {
+        let j = planted(
+            "demologs",
+            |h| vec![writer(&h.join(".gemini/cli/logs/cli.log"))],
+            Some(0),
+        );
+        assert_eq!(j.touched.len(), 1, "{j:?}");
+        assert!(j.touched[0].ends_with("cli/logs/cli.log"));
+        assert!(j.logs.is_empty(), "{j:?}");
+    }
+
+    #[test]
+    fn a_logs_dir_log_written_by_a_process_the_demo_did_not_start_is_exempt() {
+        let j = planted(
+            "otherlogs",
+            |h| vec![writer(&h.join(".gemini/cli/logs/cli.log"))],
+            None,
+        );
+        assert!(j.touched.is_empty(), "{j:?}");
+        assert_eq!(j.logs.len(), 1, "{j:?}");
+    }
+
+    /// A non-`.log` file under `logs/` is judged even when no demo pid held it.
+    #[test]
+    fn a_non_log_file_in_a_logs_dir_is_red_even_unheld() {
+        let j = planted(
+            "jsonl",
+            |h| vec![writer(&h.join(".gemini/cli/logs/transcript.jsonl"))],
+            None,
+        );
+        assert_eq!(j.touched.len(), 1, "{j:?}");
+        assert!(j.touched[0].ends_with("logs/transcript.jsonl"));
+        assert!(j.logs.is_empty(), "{j:?}");
     }
 
     /// A group leader whose log writer double-forks out of the group (its own
