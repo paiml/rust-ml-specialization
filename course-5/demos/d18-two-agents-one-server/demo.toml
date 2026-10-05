@@ -1,0 +1,27 @@
+id = "d18-two-agents-one-server"
+title = "Two agents, one server: one resident model, two clients, one judged record"
+lesson = "rfml5/3.3"
+apr = "0.70.*"
+pv = "=0.70.1"
+host_class = "gx10-cuda"
+needs = ["apr serve run"]
+
+[[step]]
+cmd = "cargo run -q -p d18-two-agents-one-server --bin d18-two-agents-one-server"
+
+[assert]
+shapes = "Green"
+planted = "Red, messages byte-equal to fixtures/receipt.planted.expect"
+exit = 0
+one_load = true
+disjoint_writes = true
+digests_recomputed = true
+decisions_from_checker = true
+one_clock = true
+pipelined_overlaps = true
+
+[record]
+target_duration_s = 300
+resolution = "1920x1080"
+terminal = { font_pt = "[U]", cols = 100, theme = "rendition-skin" }
+narration_may_cite = ["shapes"]

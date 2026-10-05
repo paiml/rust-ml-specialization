@@ -1,0 +1,19 @@
+[package]
+name = "d21-agy-app-fanin"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "D21: fan in and stop the line in the Antigravity app, driven through agy-cdp (lesson 4.4)."
+
+[[bin]]
+name = "d21-agy-app-fanin"
+path = "src/main.rs"
+
+[[bin]]
+name = "measure-stop-latency"
+path = "src/bin/measure_stop_latency.rs"
+
+[dependencies]
+agy-cdp = { path = "../agy-cdp" }
+demo-kit = { path = "../demo-kit", default-features = false }

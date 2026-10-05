@@ -1,0 +1,165 @@
+name: d21-run
+version: "1.2.0"
+scope: >
+  The run record one D21 run emits. The D20 driver fans out three agents in
+  the Antigravity app. Agent-3's fixture task is planted to fail its
+  acceptance check fast, while agents 1 and 2 hold a long step. The moment
+  agent-3 is red, the driver stops every agent still running: the line
+  stops. The deterministic reducer then refuses to merge, and it refuses
+  identically in all six arrival orders of the three results. Every timing
+  claim is a relation between two NAMED properties (red_seen_ms,
+  stop_agent_N_sent_ms, stop_agent_N_stopped_ms), so the shapes check it
+  structurally. As in D20, the driver sends typed CDP methods and three keys
+  only, and the record carries the evidence that the app itself was driven.
+  A bound on how long a stop may take, and the lowest-id rule itself, are
+  asserted in Rust, not here.
+status: active
+metadata:
+  version: "1.2.0"
+  kind: pattern
+  created: '2026-10-04'
+  last_modified: '2026-10-04'
+  author: PAIML Engineering
+  description: >
+    Fan-in with andon. One red result stops the line, and who finished first
+    changes nothing: the refusal names the lowest red agent id, never the
+    first to arrive.
+  references:
+    - 'paiml/rust-ml-specialization#20'
+    - 'paiml/rust-ml-specialization#19'
+entity:
+  type: json
+  ref: receipt.json
+vocabulary:
+  prefix: d21
+  root_class: ont:D21Run
+  nested:
+    cdp_methods: ont:D21CdpMethod
+shapes:
+  - id: d21-run
+    targetClass: ont:D21Run
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d21:demo, minCount: 1, maxCount: 1, in: [d21-agy-app-fanin]}
+      - {path: d21:app_version, minCount: 1, maxCount: 1, in: ["2.8.1"]}
+      - {path: d21:app_asar_sha256, minCount: 1, maxCount: 1, in: ["cb425e9ac098e9bc7958accc4bedb17a718c7506ae13548a0eb7cef55cdaaf26"]}
+      - {path: d21:cdp_protocol, minCount: 1, maxCount: 1, in: ["1.3"]}
+      - {path: d21:operator_profile_touched, minCount: 1, maxCount: 1, in: [false]}
+      - {path: d21:devtools_targets_opened, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d21:stray_writes, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d21:cdp_methods, minCount: 1}
+      - {path: d21:app_evidence, minCount: 5, in: [Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets]}
+      - {path: d21:keys_sent, in: [Enter, Escape, Tab]}
+      - {path: d21:agents_started, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [3]}
+      - {path: d21:red_agent, minCount: 1, maxCount: 1, in: [agent-3]}
+      - {path: d21:red_seen_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d21:stop_agent_1_sent_ms}
+      - {path: d21:red_seen_ms, lessThanOrEquals: d21:stop_agent_2_sent_ms}
+      - {path: d21:stop_agent_1_sent_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d21:stop_agent_1_stopped_ms}
+      - {path: d21:stop_agent_1_stopped_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d21:stop_agent_2_sent_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d21:stop_agent_2_stopped_ms}
+      - {path: d21:stop_agent_2_stopped_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d21:running_at_red, minCount: 2, in: [agent-1, agent-2]}
+      - {path: d21:stopped_agents, minCount: 2, in: [agent-1, agent-2]}
+      - {path: d21:writes_after_stop, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d21:merged, minCount: 1, maxCount: 1, in: [false]}
+      - {path: d21:refusal_names, minCount: 1, maxCount: 1, in: [agent-3]}
+      - {path: d21:reduce_orders, minCount: 6, maxCount: 6, in: ["1-2-3", "1-3-2", "2-1-3", "2-3-1", "3-1-2", "3-2-1"]}
+      - {path: d21:reduce_digest_per_order, minCount: 1, maxCount: 1, pattern: '^[0-9a-f]{64}$'}
+  - id: d21-cdp-method
+    targetClass: ont:D21CdpMethod
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d21:method, minCount: 1, maxCount: 1, pattern: '^(Target\.(getTargets|attachToTarget|detachFromTarget|setDiscoverTargets)|Browser\.getVersion|Page\.(enable|captureScreenshot|bringToFront)|DOM\.(enable|getDocument|getBoxModel|scrollIntoViewIfNeeded|focus|describeNode)|Accessibility\.(enable|getFullAXTree|queryAXTree)|Input\.(dispatchMouseEvent|dispatchKeyEvent|insertText))$'}
+      - {path: d21:count, minCount: 1, maxCount: 1, datatype: xsd:integer, pattern: '^[1-9][0-9]*$'}
+equations:
+  stop_the_line:
+    formula: "∀ N ∈ running_at_red: red_seen ≤ stop_sent(N) ≤ stopped(N) ∧ stopped_agents = running_at_red ∧ writes_after_stop = 0"
+    domain: "ms since the fan-out started, one monotonic clock; running_at_red is read from the app's accessibility tree at the moment the red result is seen; the shapes bound running_at_red and stopped_agents to {agent-1, agent-2} each but cannot equate two value sets, so the program asserts stopped_agents = running_at_red; it also asserts red_seen > 0 and stopped(N) − red_seen ≤ L"
+  refuse_on_red:
+    formula: "red ≠ ∅ ⇒ merged = false ∧ refusal_names = {min(red)}"
+    domain: "the three results; min is the lowest agent id, unit-tested in Rust with several red results arriving in every order"
+  order_free:
+    formula: "∀ π ∈ S3: digest(reduce(π(results))) = digest(reduce(results))"
+    domain: "the six arrival orders of the three results; the reducer's unit tests run a constant reducer as a negative control, so a reducer that ignores its input cannot pass as order-free"
+  app_driven:
+    formula: "EVIDENCE ⊆ {m.method : m ∈ cdp_methods}, EVIDENCE = {Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets}"
+    domain: "as in D20, app_evidence is computed from the driver's own tally of sent frames; that each stop was a click on that agent's own stop control (its accessibility node, DOM.getBoxModel, Input.dispatchMouseEvent), and that the agent's stopped state was then read back from the accessibility tree, is asserted in Rust, not here; so are app_evidence = EVIDENCE ∩ {m.method} and Target.setDiscoverTargets as the first frame on the browser connection"
+  no_js:
+    formula: "∀ m ∈ cdp_methods: m ∈ ALLOW ∧ ∀ k ∈ keys_sent: k ∈ {Enter, Escape, Tab} ∧ devtools_targets_opened = 0"
+    domain: "every CDP method and key the driver sent, as in D20"
+  operator_untouched:
+    formula: "profile(run) ≠ profile(operator) ∧ listing(operator, before) = listing(operator, after) ∧ stray_writes = 0"
+    domain: "exactly as in D20: the app's --user-data-dir, extensions dir, HOME and XDG_* all inside the course's one dedicated demo profile; the operator's app, gemini and XDG config, data, cache and state directories listed by path, inode, size, mtime and ctime before and after, the two listings equal, and a canary beside them unchanged; operator_profile_touched comes from that comparison. stray_writes counts every change in the run's tree outside the three agent workspaces"
+invariants:
+  - id: D21-INV-001
+    property: the line stops after red is seen, and every agent still running is stopped
+    formal: '∀ N ∈ running_at_red: red_seen ≤ stop_sent(N) ≤ stopped(N) ∧ stopped_agents = running_at_red'
+    prose: false
+  - id: D21-INV-002
+    property: nothing is written after a stop
+    formal: 'writes_after_stop = 0'
+    prose: false
+  - id: D21-INV-003
+    property: a red result refuses the merge, naming the lowest red agent
+    formal: 'merged = false ∧ refusal_names = {agent-3}'
+    prose: false
+  - id: D21-INV-004
+    property: arrival order changes nothing
+    formal: '|reduce_orders| = 6 ∧ |{digest}| = 1'
+    prose: false
+  - id: D21-INV-005
+    property: the driver sends no JavaScript, cannot open DevTools, and never uses the operator's profile
+    formal: '∀ m ∈ cdp_methods: m ∈ ALLOW ∧ keys_sent ⊆ {Enter, Escape, Tab} ∧ devtools_targets_opened = 0 ∧ operator_profile_touched = false ∧ stray_writes = 0'
+    prose: false
+  - id: D21-INV-006
+    property: the app itself was driven
+    formal: 'app_evidence = {Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets}'
+    prose: false
+falsification_tests:
+  - id: FALSIFY-D21-001
+    rule: stop the line
+    prediction: a record where agent-1's stop was sent before red was seen is rejected by lessThanOrEquals on red_seen_ms
+    test: pv lint spec --gate shapes
+    if_fails: a stop sent on a timer, not on the red result, would pass
+  - id: FALSIFY-D21-002
+    rule: stop the line
+    prediction: a record listing agent-3, the red agent that had already finished, among the stopped agents is rejected by sh:in
+    test: pv lint spec --gate shapes
+    if_fails: stopping the wrong agents would pass
+  - id: FALSIFY-D21-003
+    rule: refuse on red
+    prediction: a record with merged true, or a refusal naming agent-2, is rejected by sh:in
+    test: pv lint spec --gate shapes
+    if_fails: a merge past a red result would pass
+  - id: FALSIFY-D21-004
+    rule: order free
+    prediction: a record with two different digests is rejected by maxCount 1, and one that ran five orders is rejected by minCount 6
+    test: pv lint spec --gate shapes
+    if_fails: a reducer whose verdict depends on arrival order would pass
+  - id: FALSIFY-D21-005
+    rule: no js
+    prediction: a record listing Runtime.callFunctionOn is rejected, naming that method node, and one that sent F12 is rejected by sh:in on keys_sent
+    test: pv lint spec --gate shapes
+    if_fails: a driver that calls JavaScript functions, or opens DevTools by key, would pass
+  - id: FALSIFY-D21-006
+    rule: app driven
+    prediction: a record whose app_evidence lacks Input.insertText is rejected by minCount 5
+    test: pv lint spec --gate shapes
+    if_fails: a run that never typed into the app would pass as driving it
+  - id: FALSIFY-D21-007
+    rule: stop the line
+    prediction: a record where agent-2's stop was sent before red was seen, or where either agent stopped before its stop was sent, is rejected by lessThanOrEquals, naming the earlier property
+    test: pv lint spec --gate shapes
+    if_fails: a stopped state read before the click, or a stop raced ahead of the red result, would pass
+  - id: FALSIFY-D21-008
+    rule: app driven
+    prediction: a record listing a method with count 0 is rejected by sh:pattern on that method node's count
+    test: pv lint spec --gate shapes
+    if_fails: a method named in the tally but never sent would count as evidence
+  - id: FALSIFY-D21-009
+    rule: operator untouched
+    prediction: a run that changed a file outside the three agent workspaces is rejected by sh:in on stray_writes
+    test: pv lint spec --gate shapes
+    if_fails: a stop path that wrote somewhere else would pass

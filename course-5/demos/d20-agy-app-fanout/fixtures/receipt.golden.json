@@ -1,0 +1,84 @@
+{
+  "demo": "d20-agy-app-fanout",
+  "app_version": "2.8.1",
+  "app_asar_sha256": "cb425e9ac098e9bc7958accc4bedb17a718c7506ae13548a0eb7cef55cdaaf26",
+  "cdp_protocol": "1.3",
+  "operator_profile_touched": false,
+  "devtools_targets_opened": 0,
+  "stray_writes": 0,
+  "cdp_methods": [
+    {
+      "method": "Target.setDiscoverTargets",
+      "count": 1
+    },
+    {
+      "method": "Target.getTargets",
+      "count": 2
+    },
+    {
+      "method": "Target.attachToTarget",
+      "count": 1
+    },
+    {
+      "method": "Accessibility.getFullAXTree",
+      "count": 11
+    },
+    {
+      "method": "DOM.getBoxModel",
+      "count": 12
+    },
+    {
+      "method": "Input.dispatchMouseEvent",
+      "count": 12
+    },
+    {
+      "method": "Input.insertText",
+      "count": 3
+    },
+    {
+      "method": "Input.dispatchKeyEvent",
+      "count": 6
+    },
+    {
+      "method": "Page.captureScreenshot",
+      "count": 3
+    }
+  ],
+  "app_evidence": [
+    "Accessibility.getFullAXTree",
+    "DOM.getBoxModel",
+    "Input.dispatchMouseEvent",
+    "Input.insertText",
+    "Target.setDiscoverTargets"
+  ],
+  "keys_sent": [
+    "Enter"
+  ],
+  "agent_1_task": "fixture-alpha",
+  "agent_2_task": "fixture-beta",
+  "agent_3_task": "fixture-gamma",
+  "agent_1_state": "done",
+  "agent_2_state": "done",
+  "agent_3_state": "done",
+  "agent_1_files": [
+    "ws/agent-1/result.md"
+  ],
+  "agent_2_files": [
+    "ws/agent-2/result.md"
+  ],
+  "agent_3_files": [
+    "ws/agent-3/result.md"
+  ],
+  "screenshots_sha256": [
+    "5c8e1925fcdc10670e2ac62f2ea5b72c06c9cce9e8e9082f901284490ff67750",
+    "846c5336a8fa34ab664cd5605a7dc978804c2925f137af621f51a56a4ab5b39a",
+    "e877cff6fbed934d3144705c2f0ff3dc21626f808a3fb563d67408474aba9b24"
+  ],
+  "agent_1_started_ms": 1200,
+  "agent_2_started_ms": 1350,
+  "agent_3_started_ms": 1500,
+  "all_running_seen_ms": 1620,
+  "agent_1_done_ms": 41000,
+  "agent_2_done_ms": 43500,
+  "agent_3_done_ms": 45200
+}

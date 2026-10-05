@@ -3,6 +3,7 @@
 //! A demo with no assertions cannot be Green either — a gate that checks
 //! nothing is not a gate.
 
+use crate::shapes::ShapesOutcome;
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::fmt;
@@ -30,6 +31,18 @@ pub enum NotRunReason {
     GpuLockHeld,
     /// A tool the demo needs is not installed.
     MissingTool(String),
+    /// The app's `app.asar` is not the pinned one, whatever its version says.
+    AppMismatch {
+        pinned_sha: String,
+        found_sha: String,
+    },
+    /// An embedded fixture is still the `{"status":"unmeasured"}` sentinel.
+    FixtureUnmeasured(String),
+    /// A required `RFML5_*` variable is unset: never a default, never a guess.
+    EnvUnset(String),
+    /// The shapes judge could not give a verdict (pv declined, malformed, or
+    /// the run root was refused).
+    ShapesNotRun(String),
 }
 
 impl fmt::Display for NotRunReason {
@@ -47,6 +60,13 @@ impl fmt::Display for NotRunReason {
             Self::UndeclaredApr(p) => write!(f, "UndeclaredApr({p})"),
             Self::GpuLockHeld => write!(f, "GpuLockHeld"),
             Self::MissingTool(t) => write!(f, "MissingTool({t})"),
+            Self::AppMismatch {
+                pinned_sha,
+                found_sha,
+            } => write!(f, "AppMismatch(pinned {pinned_sha}, found {found_sha})"),
+            Self::FixtureUnmeasured(p) => write!(f, "FixtureUnmeasured({p})"),
+            Self::EnvUnset(v) => write!(f, "EnvUnset({v})"),
+            Self::ShapesNotRun(w) => write!(f, "ShapesNotRun({w})"),
         }
     }
 }
@@ -100,6 +120,33 @@ pub fn decide(preflight: &[NotRunReason], assertions: &BTreeMap<String, bool>) -
         Verdict::Green
     } else {
         Verdict::Red { failed }
+    }
+}
+
+/// [`decide`], then the shapes rule (§4 item 4): a demo whose manifest names
+/// `pv` is Green only with a Green shapes outcome. `None` is Red (nothing was
+/// judged); a NotRun outcome makes the demo NotRun; a Red one makes it Red.
+pub fn decide_with_shapes(
+    preflight: &[NotRunReason],
+    assertions: &BTreeMap<String, bool>,
+    uses_pv: bool,
+    shapes: Option<&ShapesOutcome>,
+) -> Verdict {
+    let v = decide(preflight, assertions);
+    if !v.is_green() || !uses_pv {
+        return v;
+    }
+    match shapes.map(|s| &s.verdict) {
+        None => Verdict::Red {
+            failed: vec!["shapes: not judged".into()],
+        },
+        Some(Verdict::Green) => Verdict::Green,
+        Some(Verdict::NotRun { reasons }) => Verdict::NotRun {
+            reasons: reasons.clone(),
+        },
+        Some(Verdict::Red { failed }) => Verdict::Red {
+            failed: failed.iter().map(|f| format!("shapes: {f}")).collect(),
+        },
     }
 }
 
@@ -165,6 +212,13 @@ mod tests {
             NotRunReason::UndeclaredApr("/home/x/apr".into()),
             NotRunReason::GpuLockHeld,
             NotRunReason::MissingTool("agy".into()),
+            NotRunReason::AppMismatch {
+                pinned_sha: "a".into(),
+                found_sha: "b".into(),
+            },
+            NotRunReason::FixtureUnmeasured("role-name-map.json".into()),
+            NotRunReason::EnvUnset("RFML5_AGY_BIN".into()),
+            NotRunReason::ShapesNotRun("pv lint exit 2".into()),
         ];
         for r in reasons {
             assert!(
@@ -172,5 +226,51 @@ mod tests {
                 "{r}"
             );
         }
+    }
+}
+
+/// demo-refusal-not-green-v1, shapes arm: a pv demo is never Green on its
+/// assertions alone.
+#[cfg(test)]
+mod shapes_arm {
+    use super::*;
+    use crate::shapes::ShapesOutcome;
+
+    fn all_pass() -> BTreeMap<String, bool> {
+        [("exit".to_string(), true)].into()
+    }
+
+    #[test]
+    fn demo_refusal_not_green_v1_shapes_arm() {
+        let green = ShapesOutcome::from_verdict(Verdict::Green);
+        let red = ShapesOutcome::from_verdict(Verdict::Red {
+            failed: vec!["m01 violates".into()],
+        });
+        let notrun = ShapesOutcome::from_verdict(Verdict::NotRun {
+            reasons: vec![NotRunReason::ShapesNotRun("pv lint exit 2".into())],
+        });
+        // A pv demo with every assertion passing is not Green without shapes.
+        assert_eq!(
+            decide_with_shapes(&[], &all_pass(), true, None),
+            Verdict::Red {
+                failed: vec!["shapes: not judged".into()]
+            }
+        );
+        assert!(!decide_with_shapes(&[], &all_pass(), true, Some(&red)).is_green());
+        assert!(matches!(
+            decide_with_shapes(&[], &all_pass(), true, Some(&notrun)),
+            Verdict::NotRun { .. }
+        ));
+        assert!(decide_with_shapes(&[], &all_pass(), true, Some(&green)).is_green());
+        // A refusal still wins over a Green shapes outcome.
+        assert!(!decide_with_shapes(
+            &[NotRunReason::Refused("--json-schema".into())],
+            &all_pass(),
+            true,
+            Some(&green)
+        )
+        .is_green());
+        // A demo that does not name pv is unaffected.
+        assert!(decide_with_shapes(&[], &all_pass(), false, None).is_green());
     }
 }

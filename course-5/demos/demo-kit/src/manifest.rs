@@ -11,11 +11,23 @@ pub struct DemoManifest {
     pub id: String,
     pub title: String,
     pub lesson: String,
-    /// Exact apr pin, e.g. `"=0.69.3"`, or `"none"` for a demo that runs no apr.
+    /// apr pin: exact (`"=0.69.3"`) or a series (`"0.70.*"`), or `"none"` for a demo that runs no apr.
     pub apr: String,
     /// Exact agy pin, or `"none"`.
     #[serde(default = "none")]
     pub agy: String,
+    /// Exact pv pin (`"=0.70.1"`), or `"none"`.
+    #[serde(default = "none")]
+    pub pv: String,
+    /// Exact Antigravity app pin (`"=2.8.1"`), or `"none"`.
+    #[serde(default = "none")]
+    pub antigravity: String,
+    /// sha256 of the pinned app's `resources/app.asar`: a changed asar under
+    /// the same version string is `AppMismatch`.
+    pub antigravity_asar_sha256: Option<String>,
+    /// Exact xdotool pin (`"=3.20160805.1"`), or `"none"`.
+    #[serde(default = "none")]
+    pub xdotool: String,
     pub model: Option<Model>,
     pub host_class: String,
     #[serde(default)]
@@ -90,6 +102,18 @@ impl DemoManifest {
     pub fn uses_agy(&self) -> bool {
         self.agy != "none"
     }
+
+    pub fn uses_pv(&self) -> bool {
+        self.pv != "none"
+    }
+
+    pub fn uses_antigravity(&self) -> bool {
+        self.antigravity != "none"
+    }
+
+    pub fn uses_xdotool(&self) -> bool {
+        self.xdotool != "none"
+    }
 }
 
 #[cfg(test)]
@@ -118,6 +142,8 @@ narration_may_cite = ["workers"]
         assert_eq!(m.id, "d13-reducer");
         assert!(!m.uses_apr());
         assert!(!m.uses_agy());
+        assert!(!m.uses_pv() && !m.uses_antigravity() && !m.uses_xdotool());
+        assert_eq!(m.antigravity_asar_sha256, None);
         assert_eq!(m.record.target_duration_s, 300);
     }
 

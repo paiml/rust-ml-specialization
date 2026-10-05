@@ -1,0 +1,14 @@
+[package]
+name = "agy-fixture"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Keeps the demo profile's conversation list short between takes: archives (never deletes) conversations by id, and refuses any profile but the demo's own. Not in d20's or d21's closure."
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "agy-fixture"
+path = "src/main.rs"

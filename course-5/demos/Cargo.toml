@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["d01-serve-hello", "d02-cold-vs-resident", "d04-json-verdict", "d07-quorum", "d08-planted-defect", "d09-parity-receipt", "d11-refusals", "d13-reducer", "d15-agy-teamwork", "d16-kaizen", "demo-kit", "xtask"]
+members = ["d01-serve-hello", "d02-cold-vs-resident", "d04-json-verdict", "d07-quorum", "d08-planted-defect", "d09-parity-receipt", "d11-refusals", "d13-reducer", "d15-agy-teamwork", "d16-kaizen", "d18-two-agents-one-server", "d19-workflow-ontology", "d20-agy-app-fanout", "d21-agy-app-fanin", "agy-cdp", "agy-fixture", "demo-kit", "xtask"]
 
 [workspace.package]
 edition = "2021"
@@ -13,3 +13,7 @@ serde_json = "1"
 toml = "0.8"
 sha2 = "0.10"
 libc = "0.2"
+# agy-cdp only (xtask verify refuses tungstenite in any other crate)
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+base64 = "0.23"
+rustix = { version = "1", features = ["fs"] }

@@ -1,0 +1,162 @@
+name: d20-run
+version: "1.2.0"
+scope: >
+  The run record one D20 run emits. A Rust program drives the Antigravity
+  desktop app over the Chrome DevTools Protocol and fans out three agents,
+  each with its own fixture task and its own workspace directory. It uses
+  typed CDP domains only, never a JavaScript string, and sends only three
+  keys. It launches its own app instance on the course's own dedicated demo
+  profile, with HOME and the XDG directories redirected into it, and never
+  touches the operator's. Each
+  agent is a named property set (agent_1_*, agent_2_*, agent_3_*), so every
+  claim about agent N is a constraint on agent N's own properties.
+status: active
+metadata:
+  version: "1.2.0"
+  kind: pattern
+  created: '2026-10-04'
+  last_modified: '2026-10-04'
+  author: PAIML Engineering
+  description: >
+    Fan-out, watchable in the recording: three agents running side by side in the app's
+    agent view. The run record lists every CDP method the driver sent, and
+    an exact allow-list of twenty typed methods refuses anything that can
+    run JavaScript (Runtime.*, Debugger.*, Page.addScriptToEvaluateOnNewDocument,
+    Page.navigate) and every method not on the list. The record must also
+    carry the evidence that the APP was driven, not a CLI fallback.
+  references:
+    - 'paiml/rust-ml-specialization#20'
+    - 'paiml/rust-ml-specialization#19'
+entity:
+  type: json
+  ref: receipt.json
+vocabulary:
+  prefix: d20
+  root_class: ont:D20Run
+  nested:
+    cdp_methods: ont:D20CdpMethod
+shapes:
+  - id: d20-run
+    targetClass: ont:D20Run
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d20:demo, minCount: 1, maxCount: 1, in: [d20-agy-app-fanout]}
+      - {path: d20:app_version, minCount: 1, maxCount: 1, in: ["2.8.1"]}
+      - {path: d20:app_asar_sha256, minCount: 1, maxCount: 1, in: ["cb425e9ac098e9bc7958accc4bedb17a718c7506ae13548a0eb7cef55cdaaf26"]}
+      - {path: d20:cdp_protocol, minCount: 1, maxCount: 1, in: ["1.3"]}
+      - {path: d20:operator_profile_touched, minCount: 1, maxCount: 1, in: [false]}
+      - {path: d20:devtools_targets_opened, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d20:stray_writes, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d20:cdp_methods, minCount: 1}
+      - {path: d20:app_evidence, minCount: 5, in: [Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets]}
+      - {path: d20:keys_sent, in: [Enter, Escape, Tab]}
+      - {path: d20:agent_1_task, minCount: 1, maxCount: 1, in: [fixture-alpha]}
+      - {path: d20:agent_2_task, minCount: 1, maxCount: 1, in: [fixture-beta]}
+      - {path: d20:agent_3_task, minCount: 1, maxCount: 1, in: [fixture-gamma]}
+      - {path: d20:agent_1_state, minCount: 1, maxCount: 1, in: [done]}
+      - {path: d20:agent_2_state, minCount: 1, maxCount: 1, in: [done]}
+      - {path: d20:agent_3_state, minCount: 1, maxCount: 1, in: [done]}
+      - {path: d20:agent_1_files, minCount: 1, pattern: '^ws/agent-1/[^/]+$'}
+      - {path: d20:agent_2_files, minCount: 1, pattern: '^ws/agent-2/[^/]+$'}
+      - {path: d20:agent_3_files, minCount: 1, pattern: '^ws/agent-3/[^/]+$'}
+      - {path: d20:agent_1_started_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d20:all_running_seen_ms}
+      - {path: d20:agent_2_started_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d20:all_running_seen_ms}
+      - {path: d20:agent_3_started_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d20:all_running_seen_ms}
+      - {path: d20:all_running_seen_ms, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d20:agent_1_done_ms}
+      - {path: d20:all_running_seen_ms, lessThanOrEquals: d20:agent_2_done_ms}
+      - {path: d20:all_running_seen_ms, lessThanOrEquals: d20:agent_3_done_ms}
+      - {path: d20:agent_1_done_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d20:agent_2_done_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d20:agent_3_done_ms, minCount: 1, maxCount: 1, datatype: xsd:integer}
+      - {path: d20:screenshots_sha256, minCount: 3, maxCount: 3, pattern: '^[0-9a-f]{64}$'}
+  - id: d20-cdp-method
+    targetClass: ont:D20CdpMethod
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d20:method, minCount: 1, maxCount: 1, pattern: '^(Target\.(getTargets|attachToTarget|detachFromTarget|setDiscoverTargets)|Browser\.getVersion|Page\.(enable|captureScreenshot|bringToFront)|DOM\.(enable|getDocument|getBoxModel|scrollIntoViewIfNeeded|focus|describeNode)|Accessibility\.(enable|getFullAXTree|queryAXTree)|Input\.(dispatchMouseEvent|dispatchKeyEvent|insertText))$'}
+      - {path: d20:count, minCount: 1, maxCount: 1, datatype: xsd:integer, pattern: '^[1-9][0-9]*$'}
+equations:
+  fan_out:
+    formula: "∀ N ∈ {1,2,3}: task(agent_N) = fixture(N) ∧ state(agent_N) = done"
+    domain: "the three agents the driver created in the app's agent view, read back from its accessibility tree"
+  app_driven:
+    formula: "EVIDENCE ⊆ {m.method : m ∈ cdp_methods}, EVIDENCE = {Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets}"
+    domain: "app_evidence is computed from the driver's own tally of sent frames, never written by hand; a CLI fallback sends none of the five. The shapes cannot relate app_evidence to the cdp_methods nodes, so the program asserts app_evidence = EVIDENCE ∩ {m.method} against that tally, and that Target.setDiscoverTargets is the first frame sent on the browser connection, so every Target.targetCreated is counted"
+  disjoint_workspaces:
+    formula: "∀ N: files(agent_N) ⊆ ws/agent-N/ ∧ stray_writes = 0"
+    domain: "every file changed in the scratch tree, attributed to the agent whose view reports editing it and cross-checked against a per-workspace filesystem diff; a change outside every workspace is a stray write"
+  no_js:
+    formula: "∀ m ∈ cdp_methods: m ∈ ALLOW ∧ ∀ k ∈ keys_sent: k ∈ {Enter, Escape, Tab} ∧ devtools_targets_opened = 0"
+    domain: "every CDP method and key the driver sent; DevTools targets counted from Target.targetCreated events, not sampled"
+  operator_untouched:
+    formula: "profile(run) ≠ profile(operator) ∧ listing(operator, before) = listing(operator, after)"
+    domain: "the app's --user-data-dir, extensions dir, HOME and XDG_* all inside the course's one dedicated demo profile, which lives outside the repository and is reused across runs (the operator signs in to it once; the demo never reads, copies or receives a credential); the operator's app, gemini and XDG config, data, cache and state directories listed by path, inode, size, mtime and ctime before and after, the two listings equal, and a canary beside them unchanged"
+  concurrent:
+    formula: "∀ N ∈ {1,2,3}: started(agent_N) ≤ all_running_seen ≤ done(agent_N)"
+    domain: "ms since the fan-out started, one monotonic clock. all_running_seen is the first moment one accessibility-tree snapshot reports all three agents running at once; started(N) is the moment agent N was first reported running and done(N) the moment it was first reported done. The shapes order the three moments per agent; the program asserts that all_running_seen comes from ONE snapshot holding three running states, and all_running_seen > 0"
+  evidence_distinct:
+    formula: "|{sha256(shot)}| = 3"
+    domain: "the screenshots before, fanned out and all done; the program also asserts each is non-blank"
+invariants:
+  - id: D20-INV-001
+    property: three agents fanned out, each on its own task, and every one finished
+    formal: '∀ N: task(agent_N) = fixture(N) ∧ state(agent_N) = done'
+    prose: false
+  - id: D20-INV-002
+    property: each agent wrote only inside its own workspace, and nothing wrote outside them
+    formal: '∀ N: files(agent_N) ⊆ ws/agent-N/ ∧ stray_writes = 0'
+    prose: false
+  - id: D20-INV-003
+    property: the driver sends no JavaScript and cannot open DevTools
+    formal: '∀ m ∈ cdp_methods: m ∈ ALLOW ∧ keys_sent ⊆ {Enter, Escape, Tab} ∧ devtools_targets_opened = 0'
+    prose: false
+  - id: D20-INV-004
+    property: the operator's own app profile is never used
+    formal: 'operator_profile_touched = false'
+    prose: false
+  - id: D20-INV-005
+    property: the app itself was driven
+    formal: 'app_evidence = {Accessibility.getFullAXTree, DOM.getBoxModel, Input.dispatchMouseEvent, Input.insertText, Target.setDiscoverTargets}'
+    prose: false
+  - id: D20-INV-006
+    property: the three agents ran at the same time, not one after another
+    formal: '∀ N: started(agent_N) ≤ all_running_seen ≤ done(agent_N)'
+    prose: false
+falsification_tests:
+  - id: FALSIFY-D20-001
+    rule: no js
+    prediction: a run record listing Runtime.evaluate, or Page.addScriptToEvaluateOnNewDocument (JavaScript under an allowed domain), is rejected, naming that method node
+    test: pv lint spec --gate shapes
+    if_fails: a driver that evaluates JavaScript strings would pass
+  - id: FALSIFY-D20-002
+    rule: disjoint workspaces
+    prediction: a run where agent 1 also wrote ws/agent-2/result.md is rejected by sh:pattern on agent_1_files
+    test: pv lint spec --gate shapes
+    if_fails: two agents editing one file would pass as a fan-out
+  - id: FALSIFY-D20-003
+    rule: app driven
+    prediction: a run whose app_evidence lacks Input.insertText is rejected by minCount 5
+    test: pv lint spec --gate shapes
+    if_fails: a CLI fallback that never typed into the app would pass
+  - id: FALSIFY-D20-004
+    rule: no js
+    prediction: a run that sent F12 is rejected by sh:in on keys_sent
+    test: pv lint spec --gate shapes
+    if_fails: a key that opens DevTools would pass
+  - id: FALSIFY-D20-005
+    rule: evidence distinct
+    prediction: a run with two identical screenshots is rejected by minCount 3
+    test: pv lint spec --gate shapes
+    if_fails: one frame captured three times would pass as three moments
+  - id: FALSIFY-D20-006
+    rule: app driven
+    prediction: a record listing a method with count 0 is rejected by sh:pattern on that method node's count
+    test: pv lint spec --gate shapes
+    if_fails: a method named in the tally but never sent would count as evidence
+  - id: FALSIFY-D20-007
+    rule: concurrent
+    prediction: a run where agent 3 started only after the all-running moment was recorded is rejected by lessThanOrEquals on agent_3_started_ms
+    test: pv lint spec --gate shapes
+    if_fails: three agents run one after another would pass as a fan-out

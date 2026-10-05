@@ -4,14 +4,21 @@ version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Shared harness for course-5 demos: exact pins, weights sha, serve lifecycle, timing, receipts."
+description = "Shared harness for course-5 demos: exact pins, weights sha, serve lifecycle, shapes judge, receipts."
+
+[features]
+# Everything that spawns a process, opens a socket or calls libc: serve,
+# harness, fake_serve, SystemProbe and shapes::judge. The confined crates
+# (agy-cdp, d20, d21) take demo-kit with default-features = false.
+default = ["process"]
+process = ["dep:libc"]
 
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
 sha2.workspace = true
-libc.workspace = true
+libc = { workspace = true, optional = true }
 
 [[bin]]
 # Test double for `apr serve run`: answers GET /health and idles. Used only by
@@ -19,3 +26,8 @@ libc.workspace = true
 name = "fake-apr-serve"
 path = "src/bin/fake_apr_serve.rs"
 test = false
+required-features = ["process"]
+
+[[test]]
+name = "serve_orphans"
+required-features = ["process"]

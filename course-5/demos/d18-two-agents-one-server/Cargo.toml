@@ -1,0 +1,19 @@
+[package]
+name = "d18-two-agents-one-server"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "D18: two agents share one apr server; the run record is judged by pv shapes (lesson 3.3)."
+
+[[bin]]
+name = "d18-two-agents-one-server"
+path = "src/main.rs"
+
+[[bin]]
+name = "d18-fake-apr-serve"
+path = "src/bin/fake_apr_serve.rs"
+
+[dependencies]
+demo-kit = { path = "../demo-kit" }
+serde_json.workspace = true

@@ -1,0 +1,553 @@
+{
+  "subject": "d18-run-v1",
+  "node": "ont:d18/d18-run-v1",
+  "kill": [
+    {
+      "id": "m01",
+      "component": "in",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "server_spawns"
+      ],
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/server_spawns",
+          "value": 2
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (in): ont:d18/server_spawns: \"2\"^^xsd:integer is not one of [\"1\"^^xsd:integer]"
+      ]
+    },
+    {
+      "id": "m02",
+      "component": "in",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "checker_files"
+      ],
+      "patch": [
+        {
+          "op": "add",
+          "path": "/checker_files/-",
+          "value": "out/answers.json"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (in): ont:d18/checker_files: \"out/answers.json\" is not one of [\"out/verdicts.json\"]"
+      ]
+    },
+    {
+      "id": "m03",
+      "component": "in",
+      "target": "d18-item",
+      "focus": ".q1",
+      "findings": 1,
+      "properties": [
+        "decision"
+      ],
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q1/decision",
+          "value": "maybe"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q1 violates shape `d18-item` (in): ont:d18/decision: \"maybe\" is not one of [\"accept\", \"reject\"]"
+      ]
+    },
+    {
+      "id": "m04",
+      "component": "datatype",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 2,
+      "properties": [
+        "-",
+        "-"
+      ],
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/server_start_ticks_start",
+          "value": "918273"
+        },
+        {
+          "op": "replace",
+          "path": "/server_start_ticks_end",
+          "value": "918273"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (datatype): \"918273\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer",
+        "ont:d18/d18-run-v1 violates shape `d18-run` (datatype): \"918273\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer"
+      ]
+    },
+    {
+      "id": "m05",
+      "component": "datatype",
+      "target": "d18-item",
+      "focus": ".q2",
+      "findings": 4,
+      "properties": [
+        "-",
+        "-",
+        "-",
+        "-"
+      ],
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q2/seq_writer_start_ms",
+          "value": "1181"
+        },
+        {
+          "op": "replace",
+          "path": "/q2/seq_writer_end_ms",
+          "value": "2360"
+        },
+        {
+          "op": "replace",
+          "path": "/q2/seq_checker_start_ms",
+          "value": "5741"
+        },
+        {
+          "op": "replace",
+          "path": "/q2/seq_checker_end_ms",
+          "value": "6850"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q2 violates shape `d18-item` (datatype): \"1181\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer",
+        "ont:d18/d18-run-v1.q2 violates shape `d18-item` (datatype): \"2360\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer",
+        "ont:d18/d18-run-v1.q2 violates shape `d18-item` (datatype): \"5741\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer",
+        "ont:d18/d18-run-v1.q2 violates shape `d18-item` (datatype): \"6850\"^^<http://www.w3.org/2001/XMLSchema#string> is not a xsd:integer"
+      ]
+    },
+    {
+      "id": "m06",
+      "component": "pattern",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 2,
+      "properties": [
+        "digest_pipelined",
+        "digest_sequential"
+      ],
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/digest_sequential",
+          "value": "5D2B7C1E0F9A4B3C8D7E6F5A4B3C2D1E0F9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C"
+        },
+        {
+          "op": "replace",
+          "path": "/digest_pipelined",
+          "value": "5D2B7C1E0F9A4B3C8D7E6F5A4B3C2D1E0F9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (pattern): ont:d18/digest_pipelined: \"5D2B7C1E0F9A4B3C8D7E6F5A4B3C2D1E0F9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C\" does not match /^[0-9a-f]{64}$/",
+        "ont:d18/d18-run-v1 violates shape `d18-run` (pattern): ont:d18/digest_sequential: \"5D2B7C1E0F9A4B3C8D7E6F5A4B3C2D1E0F9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C\" does not match /^[0-9a-f]{64}$/"
+      ]
+    },
+    {
+      "id": "m07",
+      "component": "lessThanOrEquals",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "server_pid_end"
+      ],
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/server_pid_end",
+          "value": 41388
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (lessThanOrEquals): ont:d18/server_pid_end: \"41388\"^^xsd:integer is not <= \"41210\"^^xsd:integer of ont:d18/server_pid_start"
+      ]
+    },
+    {
+      "id": "m08",
+      "component": "lessThanOrEquals",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "server_start_ticks_end"
+      ],
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/server_start_ticks_end",
+          "value": 918274
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (lessThanOrEquals): ont:d18/server_start_ticks_end: \"918274\"^^xsd:integer is not <= \"918273\"^^xsd:integer of ont:d18/server_start_ticks_start"
+      ]
+    },
+    {
+      "id": "m09",
+      "component": "lessThanOrEquals",
+      "target": "d18-item",
+      "focus": ".q3",
+      "findings": 1,
+      "properties": [
+        "pipe_writer_end_ms"
+      ],
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q3/pipe_checker_start_ms",
+          "value": 5501
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q3 violates shape `d18-item` (lessThanOrEquals): ont:d18/pipe_writer_end_ms: \"5560\"^^xsd:integer is not <= \"5501\"^^xsd:integer of ont:d18/pipe_checker_start_ms"
+      ]
+    },
+    {
+      "id": "m10",
+      "component": "minCount",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "writer_files"
+      ],
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/writer_files"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (minCount): has 0 value(s) of ont:d18/writer_files, minCount is 1"
+      ]
+    },
+    {
+      "id": "m11",
+      "component": "minCount",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "q4"
+      ],
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/q4"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (minCount): has 0 value(s) of ont:d18/q4, minCount is 1"
+      ]
+    },
+    {
+      "id": "m12",
+      "component": "minCount",
+      "target": "d18-item",
+      "focus": ".q2",
+      "findings": 1,
+      "properties": [
+        "decision"
+      ],
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/q2/decision"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q2 violates shape `d18-item` (minCount): has 0 value(s) of ont:d18/decision, minCount is 1"
+      ]
+    },
+    {
+      "id": "m13",
+      "component": "maxCount",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "q2"
+      ],
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q2",
+          "value": [
+            {
+              "seq_writer_start_ms": 1181,
+              "seq_writer_end_ms": 2360,
+              "seq_checker_start_ms": 5741,
+              "seq_checker_end_ms": 6850,
+              "pipe_writer_start_ms": 1177,
+              "pipe_writer_end_ms": 3390,
+              "pipe_checker_start_ms": 3391,
+              "pipe_checker_end_ms": 4520,
+              "decision": "accept"
+            },
+            {
+              "seq_writer_start_ms": 1181,
+              "seq_writer_end_ms": 2360,
+              "seq_checker_start_ms": 5741,
+              "seq_checker_end_ms": 6850,
+              "pipe_writer_start_ms": 1177,
+              "pipe_writer_end_ms": 3390,
+              "pipe_checker_start_ms": 3391,
+              "pipe_checker_end_ms": 4520,
+              "decision": "accept"
+            }
+          ]
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (maxCount): has 2 value(s) of ont:d18/q2, maxCount is 1: ont:d18/d18-run-v1.q2.0, ont:d18/d18-run-v1.q2.1"
+      ]
+    },
+    {
+      "id": "m14",
+      "component": "maxCount",
+      "target": "d18-item",
+      "focus": ".q1",
+      "findings": 1,
+      "properties": [
+        "decision"
+      ],
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q1/decision",
+          "value": [
+            "accept",
+            "reject"
+          ]
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q1 violates shape `d18-item` (maxCount): has 2 value(s) of ont:d18/decision, maxCount is 1: accept, reject"
+      ]
+    },
+    {
+      "id": "m15",
+      "component": "closed",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "speedup"
+      ],
+      "patch": [
+        {
+          "op": "add",
+          "path": "/speedup",
+          "value": 1.05
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (closed): carries ont:d18/speedup, which the closed shape does not declare"
+      ]
+    },
+    {
+      "id": "m16",
+      "component": "closed",
+      "target": "d18-item",
+      "focus": ".q1",
+      "findings": 1,
+      "properties": [
+        "note"
+      ],
+      "patch": [
+        {
+          "op": "add",
+          "path": "/q1/note",
+          "value": "x"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1.q1 violates shape `d18-item` (closed): carries ont:d18/note, which the closed shape does not declare"
+      ]
+    },
+    {
+      "id": "m17",
+      "component": "closed",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "rdf:type"
+      ],
+      "patch": [
+        {
+          "op": "add",
+          "path": "/rdf:type",
+          "value": "ont:Other"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (closed): carries ont:d18/rdf:type, which the closed shape does not declare"
+      ]
+    },
+    {
+      "id": "m18",
+      "component": "in",
+      "target": "d18-run",
+      "focus": "",
+      "findings": 1,
+      "properties": [
+        "writer_files"
+      ],
+      "patch": [
+        {
+          "op": "add",
+          "path": "/writer_files/-",
+          "value": "out/verdicts.json"
+        }
+      ],
+      "messages": [
+        "ont:d18/d18-run-v1 violates shape `d18-run` (in): ont:d18/writer_files: \"out/verdicts.json\" is not one of [\"out/answers.json\"]"
+      ]
+    }
+  ],
+  "survive": [
+    {
+      "id": "s01",
+      "why": "two equal, well-formed digests that are not this run's: the sha256 of the empty string, in both. Not pinned by choice: the bytes depend on the inference build, and the owner's ruling \"apr version is 0.70.*\" leaves the patch version free, so pinning a digest would pin the patch",
+      "rust_assert": "the program recomputes sha256 over out/answers.json ‖ out/verdicts.json after each schedule and asserts it equals the recorded digest",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/digest_sequential",
+          "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "op": "replace",
+          "path": "/digest_pipelined",
+          "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "id": "s02",
+      "why": "two equal, plausible pids that are not this server's: 41388 in both. pid 0 and 1 are refused by a pattern on both fields, so this row uses a pid the shapes cannot tell apart",
+      "rust_assert": "the pid is read from the spawned child handle, and /proc/<pid>/exe must resolve to the apr binary whose sha256 the Receipt records",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/server_pid_start",
+          "value": 41388
+        },
+        {
+          "op": "replace",
+          "path": "/server_pid_end",
+          "value": 41388
+        }
+      ]
+    },
+    {
+      "id": "s03",
+      "why": "one decision flipped, q3 reject to accept. Not pinned by choice: decisions depend on the inference build, which the owner's ruling \"apr version is 0.70.*\" leaves free across patch versions",
+      "rust_assert": "decisions are parsed from out/verdicts.json, the file only the checker wrote, and both digests cover that file",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q3/decision",
+          "value": "accept"
+        }
+      ]
+    },
+    {
+      "id": "s04",
+      "why": "one item shifted 100 s later, all eight of its timestamps alike, so q2 now follows q3",
+      "rust_assert": "every timestamp comes from one monotonic clock at the sink; items are increasing in i within a schedule and each is at most that schedule's elapsed time",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q2/seq_writer_start_ms",
+          "value": 101181
+        },
+        {
+          "op": "replace",
+          "path": "/q2/seq_writer_end_ms",
+          "value": 102360
+        },
+        {
+          "op": "replace",
+          "path": "/q2/seq_checker_start_ms",
+          "value": 105741
+        },
+        {
+          "op": "replace",
+          "path": "/q2/seq_checker_end_ms",
+          "value": 106850
+        },
+        {
+          "op": "replace",
+          "path": "/q2/pipe_writer_start_ms",
+          "value": 101177
+        },
+        {
+          "op": "replace",
+          "path": "/q2/pipe_writer_end_ms",
+          "value": 103390
+        },
+        {
+          "op": "replace",
+          "path": "/q2/pipe_checker_start_ms",
+          "value": 103391
+        },
+        {
+          "op": "replace",
+          "path": "/q2/pipe_checker_end_ms",
+          "value": 104520
+        }
+      ]
+    },
+    {
+      "id": "s05",
+      "why": "writer_files lists out/answers.json twice: an equivalent mutant, since RDF values are a set",
+      "rust_assert": "each role sink opens its file with create_new, so a second open of one path is an error, not a second entry",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/writer_files/-",
+          "value": "out/answers.json"
+        }
+      ]
+    },
+    {
+      "id": "s06",
+      "why": "a pipelined schedule that never overlapped: each writer starts only after the previous item's checker ended, so it is a sequential run under the pipelined label. Every per-item chain is still ordered",
+      "rust_assert": "the pipelined_overlaps assert (spec section 5.1): for at least one i in {1, 2, 3}, checker_start(q i) < writer_end(q i+1) and writer_start(q i+1) < checker_end(q i), on one clock. Here no such i exists",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/q2/pipe_writer_start_ms",
+          "value": 2301
+        },
+        {
+          "op": "replace",
+          "path": "/q3/pipe_writer_start_ms",
+          "value": 4521
+        },
+        {
+          "op": "replace",
+          "path": "/q4/pipe_writer_start_ms",
+          "value": 6701
+        }
+      ]
+    }
+  ]
+}

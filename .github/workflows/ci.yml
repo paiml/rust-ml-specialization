@@ -55,6 +55,23 @@ jobs:
         if: steps.bashrs-cache.outputs.cache-hit != 'true'
         run: cargo install bashrs --version 7.4.1 --locked
 
+      # pv judges D18-D21's run records (`pv lint --gate shapes`); the planted
+      # `.expect` bytes depend on its message format, so it is pinned exactly.
+      - name: Cache pv (aprender-contracts-cli)
+        id: pv-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/pv
+          key: aprender-contracts-cli-0.70.1
+
+      - name: Install pv 0.70.1
+        if: steps.pv-cache.outputs.cache-hit != 'true'
+        run: cargo install aprender-contracts-cli --version 0.70.1 --locked
+
+      # First line is "pv 0.70.1 (<sha>) (...)"; the second token is the version.
+      - name: pv is the pinned version
+        run: test "$(pv --version | awk 'NR == 1 { print $2 }')" = 0.70.1
+
       - name: Format
         run: cargo fmt --all -- --check
 

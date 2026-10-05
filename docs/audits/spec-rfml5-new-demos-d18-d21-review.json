@@ -1,0 +1,43 @@
+{
+  "spec": "docs/specifications/rfml5-new-demos-d18-d21.md",
+  "spec_sha256": "39a367a58286bd6032bba9b598a0d24fc67d07d2ee879d9219533d61245d307a",
+  "plan": {
+    "tool": "spec-section",
+    "ref": "docs/specifications/rfml5-new-demos-d18-d21.md#6",
+    "sha256": "39a367a58286bd6032bba9b598a0d24fc67d07d2ee879d9219533d61245d307a"
+  },
+  "lanes": [
+    {
+      "role": "crux",
+      "executor": "agy",
+      "verdict": "PASS",
+      "summary": "Round 4y (gemini-3.1-pro-high, conv 68785889-612b-4634-9967-a067f997f752): D18-D21 cannot pass while their claims are false; proofs 17/17 and 29/29."
+    },
+    {
+      "role": "architecture",
+      "executor": "agy",
+      "verdict": "PASS",
+      "summary": "Round 4y (gemini-3.1-pro-high, conv 2ef7d248-0978-41de-8005-225731cd3826): phase scopes disjoint, acceptance chains runnable as written."
+    },
+    {
+      "role": "security",
+      "executor": "agy",
+      "verdict": "PASS",
+      "summary": "Round 4y2 rebuttal at the same text (gemini-3.1-pro-high, conv 77ead163-9591-4c99-9bd8-48410a05b588): accepted the triage of its 4y finding; no new FAIL. Advisory: reap the driver Xvfb at teardown."
+    },
+    {
+      "role": "adversarial",
+      "executor": "agy",
+      "verdict": "PASS",
+      "summary": "Round 4y2 rebuttal at the same text (gemini-3.1-pro-high, conv ad3bcc81-6bd8-4725-bc63-dde3f8d2673b): accepted the triage; proof scripts re-audited, no vacuous pass."
+    },
+    {
+      "role": "quality",
+      "executor": "agy",
+      "verdict": "PASS",
+      "summary": "Round 4y2 rebuttal at the same text (gemini-3.1-pro-high, conv 94e4e028-ae6d-4da6-8ec4-81347c776b26): accepted the triage; counts, FALSIFY mappings and invariants consistent."
+    }
+  ],
+  "agreed": true,
+  "partial": false
+}

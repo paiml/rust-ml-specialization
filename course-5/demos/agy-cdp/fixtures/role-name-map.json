@@ -1,0 +1,56 @@
+{
+  "app_version": "2.8.1",
+  "cdp_methods": {
+    "Accessibility.enable": 1,
+    "Accessibility.getFullAXTree": 20,
+    "DOM.enable": 1,
+    "DOM.focus": 1,
+    "DOM.getBoxModel": 2,
+    "Input.dispatchKeyEvent": 2,
+    "Input.dispatchMouseEvent": 6,
+    "Input.insertText": 1,
+    "Page.enable": 1,
+    "Target.attachToTarget": 1,
+    "Target.getTargets": 3,
+    "Target.setDiscoverTargets": 1
+  },
+  "controls": {
+    "agent_state": {
+      "name": "Working",
+      "role": "StaticText"
+    },
+    "new_agent": {
+      "name": "New Conversation",
+      "role": "button"
+    },
+    "send": {
+      "name": "Send message",
+      "role": "button"
+    },
+    "stop": {
+      "name": "Stop execution",
+      "role": "button"
+    },
+    "task_box": {
+      "name": "Message input",
+      "role": "combobox"
+    }
+  },
+  "devtools": {
+    "F1": {
+      "devtools_targets_created": 0,
+      "xdotool_exit": 0
+    },
+    "F12": {
+      "devtools_targets_created": 0,
+      "xdotool_exit": 0
+    }
+  },
+  "devtools_in_snapshot": 0,
+  "keys_sent": [
+    "Enter"
+  ],
+  "notice": "absent",
+  "schema": "role-name-map-v1",
+  "xdotool": "xdotool version 3.20160805.1"
+}

@@ -1,0 +1,12 @@
+[package]
+name = "d20-agy-app-fanout"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "D20: fan out three agents in the Antigravity app, driven through agy-cdp (lesson 4.3)."
+
+[dependencies]
+agy-cdp = { path = "../agy-cdp" }
+demo-kit = { path = "../demo-kit", default-features = false }
+serde_json.workspace = true

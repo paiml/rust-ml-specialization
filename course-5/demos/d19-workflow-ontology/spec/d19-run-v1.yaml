@@ -1,0 +1,121 @@
+name: d19-run
+version: "1.1.0"
+scope: >
+  The run record one D19 run emits. D19 takes D18's contract, the two-agent
+  workflow written as a pv contract with closed SHACL shapes, and puts pv to
+  work on it: validate, extract the run record as RDF, catch an
+  after-the-fact edit with extract --check, judge the golden and planted
+  records, run pv's W3C SHACL-Core cases, and run a fixed table of
+  twenty-four mutants of the golden record. Eighteen must be killed PURELY:
+  every finding names the intended node, shape, component and property, and
+  the count is exact. Six must survive: each is a defect the shapes cannot see, and
+  its row names the Rust assert that catches it. Every field below is
+  copied from pv's own JSON output, not computed by the demo, and xtask
+  re-runs the whole table independently; this record is a summary of runs
+  anyone can repeat, not a self-judgement.
+status: active
+metadata:
+  version: "1.1.0"
+  kind: pattern
+  created: '2026-10-04'
+  last_modified: '2026-10-04'
+  author: PAIML Engineering
+  description: >
+    The specification is executable, and its limits are written down: every
+    constraint in d18-run-v1 fires on a record that breaks it and only it,
+    and six named defects pass the shapes on purpose, each owned by an
+    assert in the program.
+  references:
+    - 'paiml/rust-ml-specialization#20'
+    - 'paiml/rust-ml-specialization#19'
+entity:
+  type: json
+  ref: receipt.json
+vocabulary:
+  prefix: d19
+  root_class: ont:D19Run
+  nested: {}
+shapes:
+  - id: d19-run
+    targetClass: ont:D19Run
+    closed: true
+    ignoredProperties: [rdf:type]
+    properties:
+      - {path: d19:demo, minCount: 1, maxCount: 1, in: [d19-workflow-ontology]}
+      - {path: d19:pv_version, minCount: 1, maxCount: 1, in: ["0.70.1"]}
+      - {path: d19:subject, minCount: 1, maxCount: 1, in: [d18-run-v1]}
+      - {path: d19:validate_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d19:extract_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d19:extract_check_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d19:extract_drift_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [1]}
+      - {path: d19:golden_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [0]}
+      - {path: d19:golden_pc, minCount: 1, maxCount: 1, in: [fired]}
+      - {path: d19:w3c_passed, minCount: 1, maxCount: 1, datatype: xsd:integer, lessThanOrEquals: d19:w3c_total}
+      - {path: d19:w3c_total, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [19], lessThanOrEquals: d19:w3c_passed}
+      - {path: d19:planted_exit, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [1]}
+      - {path: d19:planted_findings, minCount: 1, maxCount: 1, datatype: xsd:integer, in: [5]}
+      - {path: d19:planted_matches_expect, minCount: 1, maxCount: 1, in: [true]}
+      - {path: d19:killed, minCount: 18, maxCount: 18, pattern: '^m(0[1-9]|1[0-8])$'}
+      - {path: d19:survived, minCount: 6, maxCount: 6, pattern: '^s0[1-6]$'}
+      - {path: d19:components_killed, minCount: 7, in: [in, datatype, pattern, lessThanOrEquals, minCount, maxCount, closed]}
+equations:
+  every_mutant_killed:
+    formula: "∀ m ∈ M: exit(m) = 1 ∧ |findings(m)| = n(m) ∧ ∀ f ∈ findings(m): node(f) = node(m) ∧ shape(f) = target(m) ∧ component(f) = component(m) ∧ props(findings(m)) = properties(m)"
+    domain: "M, the eighteen kill rows of fixtures/mutants.json, each a patch of the D18 golden record; props(f) is the first ns-qualified token after the finding's prefix (the constraint's path), or - where pv 0.70.1 names none (datatype)"
+  survivors_documented:
+    formula: "∀ s ∈ S: exit(s) = 0 ∧ findings(s) = ∅ ∧ rust_assert(s) ≠ ∅"
+    domain: "S, the six survive rows: defects the shapes cannot see, each owned by an assert in the D18 program"
+  components_covered:
+    formula: "{component(m) : m ∈ M} = {in, datatype, pattern, lessThanOrEquals, minCount, maxCount, closed}"
+    domain: "the seven SHACL-Core components pv 0.70.1 evaluates that d18-run-v1 uses, each killed on the run node and, except pattern, on an item node"
+  golden_silent:
+    formula: "exit(golden) = 0 ∧ pc_shape = fired"
+    domain: "the committed D18 golden record"
+  abox_tamper_evident:
+    formula: "edit(receipt) after extract ⇒ exit(extract --check) = 1"
+    domain: "the materialised run directory"
+  engine_conformant:
+    formula: "w3c_passed = w3c_total = 19"
+    domain: "pv's built-in W3C SHACL-Core cases, run on every lint"
+invariants:
+  - id: D19-INV-001
+    property: every kill mutant is rejected, and only for the constraint it breaks
+    formal: '∀ m ∈ M: exit(m) = 1 ∧ pure(m)'
+    prose: false
+  - id: D19-INV-002
+    property: every documented survivor still passes, so the list of what the shapes cannot see is current
+    formal: '∀ s ∈ S: exit(s) = 0 ∧ findings(s) = ∅'
+    prose: false
+  - id: D19-INV-003
+    property: the golden record passes with the positive control fired
+    formal: 'exit(golden) = 0 ∧ pc_shape = fired'
+    prose: false
+  - id: D19-INV-004
+    property: a record edited after extraction is caught
+    formal: 'extract_drift_exit = 1'
+    prose: false
+  - id: D19-INV-005
+    property: the engine that judges is itself judged
+    formal: 'w3c_passed = w3c_total = 19'
+    prose: false
+falsification_tests:
+  - id: FALSIFY-D19-001
+    rule: every mutant killed
+    prediction: a run where one kill mutant passed (its id absent from killed) is rejected by minCount 18
+    test: pv lint spec --gate shapes
+    if_fails: a constraint that never fires would look like a working one
+  - id: FALSIFY-D19-002
+    rule: survivors documented
+    prediction: a run where a documented survivor was rejected (its id absent from survived) is rejected by minCount 6
+    test: pv lint spec --gate shapes
+    if_fails: the list of what the shapes cannot see would go stale silently
+  - id: FALSIFY-D19-003
+    rule: tamper evidence
+    prediction: a run where extract --check missed the edit (exit 0) is rejected by sh:in
+    test: pv lint spec --gate shapes
+    if_fails: an edited run record would pass as the original
+  - id: FALSIFY-D19-004
+    rule: engine conformant
+    prediction: a run where one W3C case failed (18 of 19) is rejected by lessThanOrEquals
+    test: pv lint spec --gate shapes
+    if_fails: a broken SHACL engine could judge every other claim

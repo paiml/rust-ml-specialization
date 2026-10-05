@@ -1,0 +1,5 @@
+ont:d18/d18-run-v1 violates shape `d18-run` (in): ont:d18/checker_files: "out/answers.json" is not one of ["out/verdicts.json"]
+ont:d18/d18-run-v1 violates shape `d18-run` (in): ont:d18/server_spawns: "2"^^xsd:integer is not one of ["1"^^xsd:integer]
+ont:d18/d18-run-v1 violates shape `d18-run` (lessThanOrEquals): ont:d18/digest_pipelined: "5d2b7c1e0f9a4b3c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5d" is not <= "5d2b7c1e0f9a4b3c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c" of ont:d18/digest_sequential
+ont:d18/d18-run-v1 violates shape `d18-run` (lessThanOrEquals): ont:d18/server_start_ticks_end: "918274"^^xsd:integer is not <= "918273"^^xsd:integer of ont:d18/server_start_ticks_start
+ont:d18/d18-run-v1.q3 violates shape `d18-item` (lessThanOrEquals): ont:d18/pipe_writer_end_ms: "5560"^^xsd:integer is not <= "5501"^^xsd:integer of ont:d18/pipe_checker_start_ms

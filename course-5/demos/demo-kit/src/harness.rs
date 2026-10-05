@@ -9,7 +9,8 @@
 use crate::manifest::DemoManifest;
 use crate::preflight::{preflight, Probe, SystemProbe};
 use crate::receipt::{self, Receipt};
-use crate::verdict::{decide, Verdict};
+use crate::shapes::ShapesOutcome;
+use crate::verdict::{decide_with_shapes, Verdict};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -29,7 +30,7 @@ impl Harness {
     /// one it happened to be compiled in.
     pub fn load(dir: &str) -> Self {
         let dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| dir.to_string());
-        Self::load_with(Path::new(&dir), &SystemProbe)
+        Self::load_with(Path::new(&dir), &SystemProbe::default())
     }
 
     pub fn load_with(dir: &Path, probe: &dyn Probe) -> Self {
@@ -70,6 +71,14 @@ impl Harness {
         self.preflight.push(reason);
     }
 
+    /// Attach the shapes judge's outcome over the demo's run record, and the
+    /// record's sha256. A demo whose manifest names `pv` cannot finish Green
+    /// without a Green outcome here.
+    pub fn set_shapes(&mut self, outcome: ShapesOutcome, run_record: &[u8]) {
+        self.receipt.run_record_sha256 = Some(crate::sha::sha256_bytes(run_record));
+        self.receipt.shapes = Some(outcome);
+    }
+
     /// Run one step: `program args…`, recording it in the receipt. Returns
     /// (exit code, stdout, wall ms).
     pub fn step(&mut self, program: &str, args: &[&str]) -> (i32, Vec<u8>, u128) {
@@ -102,7 +111,12 @@ impl Harness {
         };
         self.receipt.measured = measured;
         self.receipt.assertions = assertions.clone();
-        self.receipt.verdict = decide(&self.preflight, &assertions);
+        self.receipt.verdict = decide_with_shapes(
+            &self.preflight,
+            &assertions,
+            self.manifest.uses_pv(),
+            self.receipt.shapes.as_ref(),
+        );
         for (k, ok) in &assertions {
             let got = self
                 .receipt
@@ -120,7 +134,7 @@ impl Harness {
         let repo = self.dir.join("../../..");
         match receipt::receipts_root(&repo) {
             Ok(root) => match self.receipt.write(&root) {
-                Ok((path, sha)) => println!("receipt: {} sha256={sha}", path.display()),
+                Ok((path, sha)) => println!("receipt: {} sha256={sha}", shown(&root, &path)),
                 Err(e) => println!("receipt: NOT WRITTEN ({e})"),
             },
             Err(e) => println!("receipt: not written ({e})"),
@@ -235,5 +249,31 @@ mod tests {
     fn missing_measurement_fails() {
         let e = exp(&[("ttft_ms", toml::Value::String("> 0".into()))]);
         assert!(!check_assertions(&e, &BTreeMap::new())["ttft_ms"]);
+    }
+}
+
+/// The receipt path as a recording shows it: the root as `$RFML5_RECEIPTS`
+/// and the demo directory, then `…`. The rest of the path names the host and
+/// the process, which a screen never needs; the sha256 identifies the file.
+fn shown(root: &Path, path: &Path) -> String {
+    match path.strip_prefix(root).ok().and_then(|p| p.iter().next()) {
+        Some(demo) => format!("$RFML5_RECEIPTS/{}/…", demo.to_string_lossy()),
+        None => path.display().to_string(),
+    }
+}
+
+#[cfg(test)]
+mod shown_tests {
+    use super::*;
+
+    #[test]
+    fn a_receipt_path_shows_no_host_or_process() {
+        let root = Path::new("/r");
+        let p = Path::new("/r/d18/some-host/0.70.1/1-2-3.json");
+        assert_eq!(shown(root, p), "$RFML5_RECEIPTS/d18/…");
+        assert_eq!(
+            shown(root, Path::new("/elsewhere/x.json")),
+            "/elsewhere/x.json"
+        );
     }
 }
