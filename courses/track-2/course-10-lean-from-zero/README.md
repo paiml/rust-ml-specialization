@@ -4,8 +4,8 @@
 
 ## Status
 
-Outline and lesson scripts drafted (4 modules, 16 lessons, capstone; see `lesson-scripts.md`). Recordings are not yet made;
-quizzes are not yet written; every lesson below needs a rich animation of the
+Outline and lesson scripts drafted (4 modules, 17 lessons, capstone; see `lesson-scripts.md`, `quiz.jsonl`, `key-terms-reflections.md`). Recordings are not yet made;
+every lesson below needs a rich animation of the
 mechanism it names (rmedia rule: text alone is never a beat).
 
 ## Structure
@@ -15,12 +15,12 @@ Course → Module → Lesson (3–5 videos ≤ 6 min each) → Key Terms + Refle
 ```
 
 Each module ends with a **Critical Thinking Assessment** (quiz + role-play).
-Course ends with one **Graded Quiz** (5 questions, 80% pass) and a Capstone.
+Course ends with one **Graded Quiz** (6 questions, 80% pass) and a Capstone.
 
 ## Modules
 
 * **Module 1 — Lean as a language you already half-know.** Lean 4 toolchain
-  (`lake`, `lean-toolchain`); definitions and `#eval` as Rust `fn` and `main`;
+  (`lake`, `lean-toolchain`); definitions as Rust `fn` and `#eval` to run them;
   inductive types as Rust `enum`; structures as `struct`.
 * **Module 2 — Types are propositions.** Propositions as types, proofs as
   terms; implication and conjunction; `theorem` vs `def`; the kernel refusing a
