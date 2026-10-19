@@ -4,7 +4,7 @@
 
 ## Status
 
-Outline and lesson scripts drafted (4 modules, 16 lessons, capstone; see `lesson-scripts.md`). Recordings and quizzes are not yet made;
+Outline and lesson scripts drafted (4 modules, 16 lessons, capstone; see `lesson-scripts.md`). Recordings are not yet made;
 quizzes are not yet written; every lesson below needs a rich animation of the
 mechanism it names (rmedia rule: text alone is never a beat).
 
