@@ -4,7 +4,9 @@
 
 ## Status
 
-Scaffolded stub. Module outlines, lesson scripts, and capstone spec are TBD.
+Outline drafted (4 modules, 16 lessons, capstone). Lesson scripts, recordings and
+quizzes are not yet written; every lesson below needs a rich animation of the
+mechanism it names (rmedia rule: text alone is never a beat).
 
 ## Structure
 
@@ -17,14 +19,26 @@ Course ends with one **Graded Quiz** (5 questions, 80% pass) and a Capstone.
 
 ## Modules
 
-* Module 1 — TBD
-* Module 2 — TBD
-* Module 3 — TBD
-* Module 4 — TBD
+* **Module 1 — Lean as a language you already half-know.** Lean 4 toolchain
+  (`lake`, `lean-toolchain`); definitions and `#eval` as Rust `fn` and `main`;
+  inductive types as Rust `enum`; structures as `struct`.
+* **Module 2 — Types are propositions.** Propositions as types, proofs as
+  terms; implication and conjunction; `theorem` vs `def`; the kernel refusing a
+  wrong proof (animate the type checker rejecting a term).
+* **Module 3 — Proving by tactic.** `intro`, `exact`, `rfl`, `simp`, `omega`,
+  `induction`; proving a list function correct; why `sorry` is a visible hole
+  (animate the sorry count of a file rising and falling).
+* **Module 4 — From a Rust contract to a Lean theorem.** A provable contract
+  (precondition, postcondition, invariant) written in Rust, restated as a Lean
+  theorem, discharged, and bound back to the Rust assert; ground truth from the
+  `lean-ground-truth` corpus (3 intentional `sorry` markers as the falsifier).
 
 ## Capstone
 
-TBD — a LinkedIn-shareable portfolio artifact built on aprender or a sister tool.
+Pick one aprender kernel contract (for example a bounded-output or
+monotonicity property), state it in Lean 4, prove it with no `sorry`, and bind
+it to the Rust `assert!` that enforces it at runtime. Deliverable: a
+LinkedIn-shareable repo whose `lake build` is green and whose sorry count is 0.
 
 ## Anchored In
 
