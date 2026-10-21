@@ -1,0 +1,28 @@
+name: Nightly demos
+
+# Informational lane (Refs #792). Never a required check and never in any
+# job's `needs`; scripts/lint-nightly-not-gate.sh proves ci.yml does not
+# depend on it. A Red demo files an issue (S3); it does not fail a merge.
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    runs-on: [self-hosted, clean-room, X64, intel]
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: course-5/demos
+    steps:
+      - uses: actions/checkout@v4
+
+      # Runs every demo crate found in the workspace. Demos needing a host
+      # this pool lacks (gx10-cuda) report NotRun, which never blocks (S5).
+      - name: Run all demos
+        run: cargo run -p xtask -- nightly
