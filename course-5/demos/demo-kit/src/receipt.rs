@@ -27,6 +27,12 @@ pub struct Receipt {
     pub recorded: bool,
     pub apr_version: String,
     pub apr_tarball_sha: Option<String>,
+    /// sha256 of the dev apr binary (`RFML5_DEV_APR` nightly runs only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apr_sha256: Option<String>,
+    /// The named pin mismatch of a dev-apr run (e.g. `VersionMismatch(...)`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apr_pin_mismatch: Option<String>,
     pub agy_version: Option<String>,
     pub model_sha256: Option<String>,
     pub host: String,
@@ -45,6 +51,8 @@ impl Receipt {
             recorded: std::env::var("RFML5_RECORDED").is_ok_and(|v| v == "1"),
             apr_version: apr_version.into(),
             apr_tarball_sha: None,
+            apr_sha256: None,
+            apr_pin_mismatch: None,
             agy_version: None,
             model_sha256: None,
             host: hostname(),

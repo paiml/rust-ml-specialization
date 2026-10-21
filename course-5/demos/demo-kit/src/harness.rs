@@ -7,7 +7,7 @@
 //! or a string `"<op> <number>"` with op one of `== != >= <= > <`.
 
 use crate::manifest::DemoManifest;
-use crate::preflight::{preflight, Probe, SystemProbe};
+use crate::preflight::{dev_apr_mismatch, preflight, Probe, SystemProbe};
 use crate::receipt::{self, Receipt};
 use crate::verdict::{decide, Verdict};
 use serde_json::Value;
@@ -19,6 +19,7 @@ pub struct Harness {
     pub dir: PathBuf,
     pub receipt: Receipt,
     preflight: Vec<crate::NotRunReason>,
+    dev_apr: Option<std::path::PathBuf>,
 }
 
 impl Harness {
@@ -50,12 +51,19 @@ impl Harness {
         if manifest.uses_agy() {
             receipt.agy_version = probe.version("agy");
         }
+        let dev_apr = probe.dev_apr().filter(|_| manifest.uses_apr());
+        if let Some(path) = &dev_apr {
+            receipt.apr_sha256 =
+                Some(crate::sha::sha256_file(path).unwrap_or_else(|_| "unreadable".into()));
+            receipt.apr_pin_mismatch = dev_apr_mismatch(&manifest, probe).map(|r| r.to_string());
+        }
         receipt.model_sha256 = manifest.model.as_ref().map(|m| m.sha256.clone());
         Harness {
             manifest,
             dir: dir.to_path_buf(),
             receipt,
             preflight: pre,
+            dev_apr,
         }
     }
 
@@ -79,7 +87,11 @@ impl Harness {
             .join(" ");
         println!("$ {cmd}");
         let t = std::time::Instant::now();
-        let out = std::process::Command::new(program).args(args).output();
+        let exe = match (&self.dev_apr, program) {
+            (Some(dev), "apr") => dev.as_os_str().to_owned(),
+            _ => program.into(),
+        };
+        let out = std::process::Command::new(exe).args(args).output();
         let ms = t.elapsed().as_millis();
         let (code, stdout) = match out {
             Ok(o) => (o.status.code().unwrap_or(-1), o.stdout),
@@ -235,5 +247,50 @@ mod tests {
     fn missing_measurement_fails() {
         let e = exp(&[("ttft_ms", toml::Value::String("> 0".into()))]);
         assert!(!check_assertions(&e, &BTreeMap::new())["ttft_ms"]);
+    }
+
+    struct DevProbe(std::path::PathBuf);
+    impl Probe for DevProbe {
+        fn which(&self, _: &str) -> Option<std::path::PathBuf> {
+            Some(self.0.clone())
+        }
+        fn version(&self, _: &str) -> Option<String> {
+            Some("0.70.0-dev".into())
+        }
+        fn available(&self, _: &str) -> bool {
+            true
+        }
+        fn gpu_reserved(&self) -> bool {
+            false
+        }
+        fn declared_apr(&self) -> Vec<std::path::PathBuf> {
+            vec![]
+        }
+        fn dev_apr(&self) -> Option<std::path::PathBuf> {
+            Some(self.0.clone())
+        }
+    }
+
+    #[test]
+    fn dev_apr_run_records_sha_and_names_the_mismatch() {
+        let d = std::env::temp_dir().join(format!("dk-dev-apr-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        std::fs::write(
+            d.join("demo.toml"),
+            "id = \"d00\"\ntitle = \"t\"\nlesson = \"l\"\napr = \"=0.69.3\"\nhost_class = \"cpu\"\nneeds = [\"apr run\"]\n[record]\ntarget_duration_s = 300\nresolution = \"1920x1080\"\n",
+        )
+        .unwrap();
+        let dev = d.join("apr");
+        std::fs::write(&dev, b"#!/bin/sh\necho dev\n").unwrap();
+        let h = Harness::load_with(&d, &DevProbe(dev.clone()));
+        assert!(h.not_run().is_empty());
+        assert_eq!(
+            h.receipt.apr_sha256.as_deref(),
+            Some(crate::sha::sha256_file(&dev).unwrap().as_str())
+        );
+        assert!(h.receipt.apr_pin_mismatch.as_deref().is_some_and(
+            |m| m.starts_with("VersionMismatch(apr: pinned 0.69.3, found 0.70.0-dev)")
+        ));
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

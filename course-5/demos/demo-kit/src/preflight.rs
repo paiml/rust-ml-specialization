@@ -24,33 +24,59 @@ pub trait Probe {
     /// Does any job hold a GPU reservation?
     fn gpu_reserved(&self) -> bool;
     fn declared_apr(&self) -> Vec<PathBuf>;
+    /// Nightly override: run against this apr instead of the pinned one
+    /// (`RFML5_DEV_APR`). `None` leaves every pin check as it was.
+    fn dev_apr(&self) -> Option<PathBuf> {
+        None
+    }
+}
+
+/// With a dev-apr override, the pin mismatch is not a refusal but a named
+/// result: the receipt carries it so the nightly never passes silently.
+pub fn dev_apr_mismatch(m: &DemoManifest, probe: &dyn Probe) -> Option<NotRunReason> {
+    probe.dev_apr()?;
+    let p = pin::parse_exact(&m.apr).ok()?;
+    let found = probe.version("apr").unwrap_or_else(|| "unknown".into());
+    (m.uses_apr() && found != p.0).then(|| NotRunReason::VersionMismatch {
+        tool: "apr".into(),
+        pinned: p.0,
+        found,
+    })
+}
+
+/// Pin, presence, declaration and version checks for one pinned tool.
+fn tool_reasons(tool: &str, spec: &str, probe: &dyn Probe) -> Vec<NotRunReason> {
+    let p = match pin::parse_exact(spec) {
+        Ok(p) => p,
+        Err(bad) => return vec![NotRunReason::PinRefused(format!("{tool} {bad}"))],
+    };
+    let Some(path) = probe.which(tool) else {
+        return vec![NotRunReason::MissingTool(tool.into())];
+    };
+    if tool == "apr" && probe.dev_apr().is_some() {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    if tool == "apr" && !probe.declared_apr().contains(&path) {
+        out.push(NotRunReason::UndeclaredApr(path.display().to_string()));
+    }
+    let found = probe.version(tool).unwrap_or_else(|| "unknown".into());
+    if found != p.0 {
+        out.push(NotRunReason::VersionMismatch {
+            tool: tool.into(),
+            pinned: p.0,
+            found,
+        });
+    }
+    out
 }
 
 pub fn preflight(m: &DemoManifest, base: &Path, probe: &dyn Probe) -> Vec<NotRunReason> {
     let mut out = Vec::new();
 
     for (tool, spec, used) in [("apr", &m.apr, m.uses_apr()), ("agy", &m.agy, m.uses_agy())] {
-        if !used {
-            continue;
-        }
-        match pin::parse_exact(spec) {
-            Err(bad) => out.push(NotRunReason::PinRefused(format!("{tool} {bad}"))),
-            Ok(p) => match probe.which(tool) {
-                None => out.push(NotRunReason::MissingTool(tool.into())),
-                Some(path) => {
-                    if tool == "apr" && !probe.declared_apr().contains(&path) {
-                        out.push(NotRunReason::UndeclaredApr(path.display().to_string()));
-                    }
-                    let found = probe.version(tool).unwrap_or_else(|| "unknown".into());
-                    if found != p.0 {
-                        out.push(NotRunReason::VersionMismatch {
-                            tool: tool.into(),
-                            pinned: p.0,
-                            found,
-                        });
-                    }
-                }
-            },
+        if used {
+            out.extend(tool_reasons(tool, spec, probe));
         }
     }
 
@@ -109,14 +135,29 @@ impl SystemProbe {
 
 impl Probe for SystemProbe {
     fn which(&self, tool: &str) -> Option<PathBuf> {
+        if tool == "apr" {
+            if let Some(dev) = self.dev_apr() {
+                return dev.is_file().then_some(dev);
+            }
+        }
         let path = std::env::var_os("PATH")?;
         std::env::split_paths(&path)
             .map(|d| d.join(tool))
             .find(|p| p.is_file())
     }
 
+    fn dev_apr(&self) -> Option<PathBuf> {
+        std::env::var_os("RFML5_DEV_APR")
+            .filter(|v| !v.is_empty())
+            .map(PathBuf::from)
+    }
+
     fn version(&self, tool: &str) -> Option<String> {
-        let (ok, text) = run(tool, &["--version"])?;
+        let program = match (tool, self.dev_apr()) {
+            ("apr", Some(dev)) => dev.display().to_string(),
+            _ => tool.to_string(),
+        };
+        let (ok, text) = run(&program, &["--version"])?;
         ok.then(|| pin::version_from_output(tool, &text)).flatten()
     }
 
@@ -186,6 +227,7 @@ pub(crate) mod tests {
         pub agy: Option<String>,
         pub refused: BTreeSet<String>,
         pub gpu_reserved: bool,
+        pub dev_apr: Option<PathBuf>,
     }
 
     impl Default for FakeProbe {
@@ -195,6 +237,7 @@ pub(crate) mod tests {
                 agy: Some("1.2.11".into()),
                 refused: BTreeSet::new(),
                 gpu_reserved: false,
+                dev_apr: None,
             }
         }
     }
@@ -225,6 +268,9 @@ pub(crate) mod tests {
         }
         fn declared_apr(&self) -> Vec<PathBuf> {
             vec![PathBuf::from(DEFAULT_DECLARED_APR)]
+        }
+        fn dev_apr(&self) -> Option<PathBuf> {
+            self.dev_apr.clone()
         }
     }
 
@@ -368,5 +414,53 @@ resolution = "1920x1080"
             [NotRunReason::FixturesMismatch { .. }]
         ));
         std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    fn dev_probe() -> FakeProbe {
+        FakeProbe {
+            apr: Some((PathBuf::from("/home/x/.local/bin/apr"), "0.70.0-dev".into())),
+            dev_apr: Some(PathBuf::from("/home/x/.local/bin/apr")),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn dev_apr_override_runs_instead_of_refusing() {
+        assert!(preflight(&manifest(""), Path::new("."), &dev_probe()).is_empty());
+    }
+
+    #[test]
+    fn dev_apr_without_override_still_refuses() {
+        let probe = FakeProbe {
+            dev_apr: None,
+            ..dev_probe()
+        };
+        let r = preflight(&manifest(""), Path::new("."), &probe);
+        assert!(r
+            .iter()
+            .any(|x| matches!(x, NotRunReason::VersionMismatch { .. })));
+        assert!(r
+            .iter()
+            .any(|x| matches!(x, NotRunReason::UndeclaredApr(_))));
+    }
+
+    #[test]
+    fn dev_apr_names_the_version_mismatch() {
+        let m = manifest("");
+        match dev_apr_mismatch(&m, &dev_probe()) {
+            Some(NotRunReason::VersionMismatch { pinned, found, .. }) => {
+                assert_eq!((pinned.as_str(), found.as_str()), ("0.69.3", "0.70.0-dev"));
+            }
+            other => panic!("want VersionMismatch, got {other:?}"),
+        }
+        assert!(dev_apr_mismatch(&m, &FakeProbe::default()).is_none());
+    }
+
+    #[test]
+    fn dev_apr_does_not_waive_a_floor_pin() {
+        let mut m = manifest("");
+        m.apr = ">=0.69".into();
+        let r = preflight(&m, Path::new("."), &dev_probe());
+        assert!(r.iter().any(|x| matches!(x, NotRunReason::PinRefused(_))));
     }
 }
