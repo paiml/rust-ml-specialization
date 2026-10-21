@@ -1,9 +1,11 @@
 //! `cargo run -p xtask -- verify` — every demo's `demo.toml` parses, pins
 //! exactly, and its `src/main.rs` carries a provable contract.
 //! `cargo run -p xtask -- card <demo>` — print the demo's recording card.
+//! `cargo run -p xtask -- nightly` — run every demo; Green/Red/NotRun per demo (#792).
 
 mod card;
 mod lint;
+mod nightly;
 mod shell;
 
 use demo_kit::{pin, DemoManifest};
@@ -132,6 +134,17 @@ fn main() -> ExitCode {
     let root = demos_root();
     match args.first().map(String::as_str) {
         Some("verify") => verify(&root),
+        Some("nightly") => {
+            let has_gpu = std::env::var_os("RFML5_GPU_LANE").is_some();
+            let rep = nightly::run(&root, has_gpu);
+            if rep.lines.is_empty() {
+                eprintln!("nightly: no demos found; the runner enumerated nothing");
+                return ExitCode::FAILURE;
+            }
+            rep.lines.iter().for_each(|l| println!("{l}"));
+            println!("{}", rep.summary);
+            ExitCode::SUCCESS
+        }
         Some("card") => {
             let Some(name) = args.get(1) else {
                 eprintln!("usage: xtask card <demo-dir>");
@@ -149,7 +162,7 @@ fn main() -> ExitCode {
             }
         }
         _ => {
-            eprintln!("usage: xtask verify | xtask card <demo-dir>");
+            eprintln!("usage: xtask verify | xtask nightly | xtask card <demo-dir>");
             ExitCode::from(2)
         }
     }
