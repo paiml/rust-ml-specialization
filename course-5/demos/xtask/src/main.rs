@@ -3,6 +3,7 @@
 //! `cargo run -p xtask -- card <demo>` — print the demo's recording card.
 
 mod card;
+mod ledger;
 mod lint;
 mod shell;
 
@@ -127,6 +128,57 @@ fn verify(root: &Path) -> ExitCode {
     }
 }
 
+/// `nights <ledger> <today>`: the KPI figure; an absent ledger is NOT MEASURED (exit 1).
+fn nights(a: &[String]) -> ExitCode {
+    let [path, today] = a else {
+        eprintln!("usage: xtask nights <ledger> <YYYY-MM-DD>");
+        return ExitCode::from(2);
+    };
+    let text = std::fs::read_to_string(path).ok();
+    let f = ledger::figure(text.as_deref(), today);
+    println!("nights-in-last-7: {f}");
+    if f == "NOT MEASURED" {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+/// `ledger-append <ledger> <date> <demos> <green> <red> <not_run> <apr_sha>`.
+fn ledger_append(a: &[String]) -> ExitCode {
+    let [path, date, d, g, r, n, sha] = a else {
+        eprintln!(
+            "usage: xtask ledger-append <ledger> <date> <demos> <green> <red> <not_run> <apr_sha>"
+        );
+        return ExitCode::from(2);
+    };
+    let num = |s: &String| s.parse::<u32>().ok();
+    let (Some(demos), Some(green), Some(red), Some(not_run)) = (num(d), num(g), num(r), num(n))
+    else {
+        eprintln!("counts must be non-negative integers");
+        return ExitCode::from(2);
+    };
+    if ledger::day_number(date).is_none() || sha.is_empty() || green + red + not_run != demos {
+        eprintln!("bad row: date must be YYYY-MM-DD, sha non-empty, green+red+not_run == demos");
+        return ExitCode::from(2);
+    }
+    let row = ledger::Row {
+        date: date.clone(),
+        demos,
+        green,
+        red,
+        not_run,
+        apr_sha: sha.clone(),
+    };
+    match ledger::append(std::path::Path::new(path), &row) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("{e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let root = demos_root();
@@ -148,8 +200,10 @@ fn main() -> ExitCode {
                 }
             }
         }
+        Some("nights") => nights(&args[1..]),
+        Some("ledger-append") => ledger_append(&args[1..]),
         _ => {
-            eprintln!("usage: xtask verify | xtask card <demo-dir>");
+            eprintln!("usage: xtask verify | card <demo-dir> | nights <ledger> <YYYY-MM-DD> | ledger-append <ledger> <date> <demos> <green> <red> <not_run> <apr_sha>");
             ExitCode::from(2)
         }
     }
