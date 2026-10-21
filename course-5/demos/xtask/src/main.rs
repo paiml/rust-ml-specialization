@@ -1,7 +1,10 @@
 //! `cargo run -p xtask -- verify` — every demo's `demo.toml` parses, pins
 //! exactly, and its `src/main.rs` carries a provable contract.
 //! `cargo run -p xtask -- card <demo>` — print the demo's recording card.
+//! `cargo run -p xtask -- autofile --results DIR [--existing FILE] [--repo R] [--apply]`
+//! — one aprender issue per (demo, apr sha7) for each Red; dry-run unless `--apply`.
 
+mod autofile;
 mod card;
 mod lint;
 mod shell;
@@ -127,6 +130,57 @@ fn verify(root: &Path) -> ExitCode {
     }
 }
 
+fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
+    args.iter()
+        .position(|a| a == name)
+        .and_then(|i| args.get(i + 1))
+        .map(String::as_str)
+}
+
+/// Dry-run prints the planned actions; `--apply` is the only path to `gh`.
+fn run_autofile(args: &[String]) -> ExitCode {
+    let Some(results) = flag(args, "--results") else {
+        eprintln!("usage: xtask autofile --results DIR [--existing FILE] [--repo R] [--apply]");
+        return ExitCode::from(2);
+    };
+    let repo = flag(args, "--repo").unwrap_or("paiml/aprender");
+    let apply = args.iter().any(|a| a == "--apply");
+    let run = || -> Result<(), String> {
+        let outs = autofile::load_outcomes(Path::new(results))?;
+        let existing = match flag(args, "--existing") {
+            Some(f) => autofile::parse_existing(
+                &std::fs::read_to_string(f).map_err(|e| format!("{f}: {e}"))?,
+            )?,
+            None if apply => autofile::gh_existing(repo)?,
+            None => Vec::new(),
+        };
+        let actions = autofile::plan(&outs, &existing);
+        for a in &actions {
+            match a {
+                autofile::Action::Create { title, .. } => println!("CREATE  {title}"),
+                autofile::Action::Comment { number, .. } => println!("COMMENT #{number}"),
+            }
+            if apply {
+                autofile::gh_apply(repo, a)?;
+            }
+        }
+        println!(
+            "autofile: {} demo(s), {} action(s){}",
+            outs.len(),
+            actions.len(),
+            if apply { "" } else { " (dry-run)" }
+        );
+        Ok(())
+    };
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("autofile: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let root = demos_root();
@@ -148,8 +202,9 @@ fn main() -> ExitCode {
                 }
             }
         }
+        Some("autofile") => run_autofile(&args[1..]),
         _ => {
-            eprintln!("usage: xtask verify | xtask card <demo-dir>");
+            eprintln!("usage: xtask verify | xtask card <demo-dir> | xtask autofile --results DIR");
             ExitCode::from(2)
         }
     }

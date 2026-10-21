@@ -8,3 +8,4 @@ description = "course-5 demo gates: `verify` (pins, provable-contract lint) and 
 
 [dependencies]
 demo-kit = { path = "../demo-kit" }
+serde_json.workspace = true
