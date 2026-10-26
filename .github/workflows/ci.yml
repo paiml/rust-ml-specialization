@@ -123,72 +123,11 @@ jobs:
       - name: pv lint
         run: pv lint courses/track-6/course-57-network-performance-for-ml/contracts
 
-  # Coverage is below 100%, so these jobs print the number and pass; they
-  # enforce no threshold yet. Measured: demos 49.41% lines, lab practice 60.28% lines.
-  coverage-demos-report:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v6
-      - name: Toolchain
-        uses: dtolnay/rust-toolchain@d124f86f28ff42855784ff3319f48ac182c248f8 # 1.99.1
-        with:
-          components: llvm-tools-preview
-      - uses: actions/cache@v6.1.0
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            course-5/demos/target
-          key: cov-demos-${{ runner.os }}-${{ hashFiles('course-5/demos/Cargo.lock', 'rust-toolchain.toml') }}
-      # The demos' tests shell out to both tools; a missing tool fails, never skips.
-      - name: Install shellcheck 0.10.0
-        run: |
-          curl -sfL https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz | tar -xJ
-          sudo install shellcheck-v0.10.0/shellcheck /usr/local/bin/shellcheck
-          shellcheck --version
-      - name: Cache bashrs
-        id: bashrs-cache
-        uses: actions/cache@v6.1.0
-        with:
-          path: ~/.cargo/bin/bashrs
-          key: bashrs-7.4.1
-      - name: Install bashrs 7.4.1
-        if: steps.bashrs-cache.outputs.cache-hit != 'true'
-        run: cargo install bashrs --version 7.4.1 --locked
-      - uses: taiki-e/install-action@v2.87.32
-        with:
-          tool: cargo-llvm-cov@0.8.5
-      - name: Coverage (report only)
-        working-directory: course-5/demos
-        run: cargo llvm-cov --workspace --summary-only
-
-  coverage-lab-report:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v6
-      - name: Toolchain
-        uses: dtolnay/rust-toolchain@d124f86f28ff42855784ff3319f48ac182c248f8 # 1.99.1
-        with:
-          components: llvm-tools-preview
-      - uses: actions/cache@v6.1.0
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            course-5/lab/practice/target
-          key: cov-lab-${{ runner.os }}-${{ hashFiles('course-5/lab/practice/Cargo.lock', 'rust-toolchain.toml') }}
-      - uses: taiki-e/install-action@v2.87.32
-        with:
-          tool: cargo-llvm-cov@0.8.5
-      - name: Coverage (report only)
-        working-directory: course-5/lab/practice
-        run: cargo llvm-cov --summary-only
-
   # The org "Green Main" ruleset requires one status named `gate`. It passes
   # only when every job above passed; a skipped or cancelled job is a failure.
   gate:
     if: always()
-    needs: [check, course-5-demos, course-5-lab, pv-lint, coverage-demos-report, coverage-lab-report]
+    needs: [check, course-5-demos, course-5-lab, pv-lint]
     runs-on: ubuntu-24.04
     steps:
       - name: All required jobs passed
@@ -197,5 +136,3 @@ jobs:
           test "${{ needs.course-5-demos.result }}" = success
           test "${{ needs.course-5-lab.result }}" = success
           test "${{ needs.pv-lint.result }}" = success
-          test "${{ needs.coverage-demos-report.result }}" = success
-          test "${{ needs.coverage-lab-report.result }}" = success
