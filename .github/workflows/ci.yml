@@ -8,17 +8,17 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node (for markdownlint)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: "20"
 
       - name: Install markdownlint-cli
-        run: npm install -g markdownlint-cli
+        run: npm install -g markdownlint-cli@0.50.0
 
       - name: Lint markdown
         run: make lint
@@ -27,15 +27,17 @@ jobs:
         run: make test
 
   course-5-demos:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: course-5/demos
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Toolchain
-        run: rustup toolchain install stable --profile minimal -c clippy,rustfmt && rustup default stable
+        uses: dtolnay/rust-toolchain@d124f86f28ff42855784ff3319f48ac182c248f8 # 1.99.1
+        with:
+          components: rustfmt, clippy
 
       # Pinned: verify and the D14 falsifier shell out to both. A missing tool fails, never skips.
       - name: Install shellcheck 0.10.0
@@ -44,9 +46,16 @@ jobs:
           sudo install shellcheck-v0.10.0/shellcheck /usr/local/bin/shellcheck
           shellcheck --version
 
+      - uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            course-5/demos/target
+          key: demos-${{ runner.os }}-${{ hashFiles('course-5/demos/Cargo.lock', 'rust-toolchain.toml') }}
       - name: Cache bashrs
         id: bashrs-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.cargo/bin/bashrs
           key: bashrs-7.4.1
@@ -70,11 +79,20 @@ jobs:
   # The course 5 lab: the practice crate is tested and every exercise run; the
   # assignment skeleton is only built, because its `todo!()`s panic by design.
   course-5-lab:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Toolchain
-        run: rustup toolchain install stable --profile minimal -c clippy,rustfmt && rustup default stable
+        uses: dtolnay/rust-toolchain@d124f86f28ff42855784ff3319f48ac182c248f8 # 1.99.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            course-5/lab/practice/target
+          key: lab-${{ runner.os }}-${{ hashFiles('course-5/lab/practice/Cargo.lock', 'rust-toolchain.toml') }}
       - name: Practice
         working-directory: course-5/lab/practice
         run: |
@@ -88,37 +106,33 @@ jobs:
           cargo fmt --all -- --check
           cargo build --tests --bins
 
-  # Not in `gate` yet: `pmat comply` fails today on repo-level checks (branch
-  # protection, deny.toml, TDG grade) that need a ruling. It runs and reports.
-  pmat-comply:
-    runs-on: ubuntu-latest
+  pv-lint:
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - name: Toolchain
-        run: rustup toolchain install stable --profile minimal && rustup default stable
-      - name: Cache pmat
-        id: pmat-cache
-        uses: actions/cache@v4
+      - uses: actions/checkout@v6
         with:
-          path: ~/.cargo/bin/pmat
-          key: pmat-3.42.0
-      - name: Install pmat 3.42.0
-        if: steps.pmat-cache.outputs.cache-hit != 'true'
-        run: cargo install pmat --version 3.42.0 --locked
-      - name: pmat comply
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: pmat comply check
+          fetch-depth: 0
+      - name: Toolchain
+        uses: dtolnay/rust-toolchain@d124f86f28ff42855784ff3319f48ac182c248f8 # 1.99.1
+      - uses: actions/cache@v6.1.0
+        with:
+          path: ~/.cargo/bin/pv
+          key: pv-0.71.4-${{ runner.os }}
+      - name: Install pv 0.71.4
+        run: command -v pv || cargo install --locked aprender-contracts-cli --version 0.71.4
+      - name: pv lint
+        run: pv lint courses/track-6/course-57-network-performance-for-ml/contracts
 
   # The org "Green Main" ruleset requires one status named `gate`. It passes
   # only when every job above passed; a skipped or cancelled job is a failure.
   gate:
     if: always()
-    needs: [check, course-5-demos, course-5-lab]
-    runs-on: ubuntu-latest
+    needs: [check, course-5-demos, course-5-lab, pv-lint]
+    runs-on: ubuntu-24.04
     steps:
       - name: All required jobs passed
         run: |
           test "${{ needs.check.result }}" = success
           test "${{ needs.course-5-demos.result }}" = success
           test "${{ needs.course-5-lab.result }}" = success
+          test "${{ needs.pv-lint.result }}" = success

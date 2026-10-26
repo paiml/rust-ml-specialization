@@ -194,6 +194,31 @@ cd rust-ml-specialization
 make check
 ```
 
+### Tool setup used by the course checks
+
+Course 5 (demos and lab) needs a pinned Rust toolchain, `shellcheck` and `bashrs`.
+The repository's `rust-toolchain.toml` selects Rust 1.99.1 (rustfmt, clippy and
+llvm-tools-preview).
+
+#### Linux / Ubuntu
+
+```text
+rustup toolchain install stable --profile minimal -c clippy,rustfmt
+curl -sfL https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz | tar -xJ
+sudo install shellcheck-v0.10.0/shellcheck /usr/local/bin/shellcheck
+cargo install bashrs --version 7.4.1 --locked
+npm install -g markdownlint-cli@0.50.0
+```
+
+#### macOS
+
+```text
+rustup toolchain install stable --profile minimal -c clippy,rustfmt
+brew install shellcheck
+cargo install bashrs --version 7.4.1 --locked
+npm install -g markdownlint-cli@0.50.0
+```
+
 ## Usage
 
 ```text

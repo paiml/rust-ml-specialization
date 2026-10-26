@@ -1,0 +1,54 @@
+# Weekly check that the learner build still works on the latest runner images.
+name: canary
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  learner-build:
+    name: learner-build (${{ matrix.os }})
+    timeout-minutes: 60
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@d124f86f28ff42855784ff3319f48ac182c248f8 # 1.99.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            course-5/demos/target
+            course-5/lab/practice/target
+          key: canary-${{ runner.os }}-${{ hashFiles('course-5/demos/Cargo.lock', 'course-5/lab/practice/Cargo.lock', 'rust-toolchain.toml') }}
+      - name: Install shellcheck (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          curl -sfL https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz | tar -xJ
+          sudo install shellcheck-v0.10.0/shellcheck /usr/local/bin/shellcheck
+      - name: Install shellcheck (macOS)
+        if: runner.os == 'macOS'
+        run: brew install shellcheck
+      - name: Install bashrs 7.4.1
+        run: cargo install bashrs --version 7.4.1 --locked
+      - name: Demos
+        working-directory: course-5/demos
+        run: |
+          cargo test --workspace
+          cargo run -q -p xtask -- verify
+      - name: Lab practice
+        working-directory: course-5/lab/practice
+        run: cargo test
